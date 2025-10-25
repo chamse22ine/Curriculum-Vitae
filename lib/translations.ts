@@ -3,9 +3,9 @@ export const translations = {
     // Hero Section
     hero: {
       title: "Chamseddine Adaadour",
-      subtitle: "Étudiant en Informatique & Explorateur de Données",
+      subtitle: "Étudiant en Informatique",
       description:
-        "Je construis des solutions intelligentes où la donnée rencontre la technologie.",
+        "Je conçois des applications web modernes avec des technologies de pointe et crée des solutions élégantes à des problèmes complexes",
       exploreButton: "Explorer mon univers",
       calculatorButton: "Calculatrice",
       downloadCV: "Télécharger mon CV",
@@ -14,8 +14,7 @@ export const translations = {
     about: {
       title: "À propos",
       description:
-        "Je suis un étudiant de 20 ans, basé à Lens (France), en 2ᵉ année de Licence Informatique à l'Université d'Artois (2022–2026). Passionné par la Data Science, l'IA et le développement web, je cherche à comprendre et à transformer la donnée en valeur réelle.",
-      quote: "",
+        "Basé à Lille (France), j'ai 21 ans et je poursuis ma 3ème année de Licence Informatique à l'Université d'Artois (2022–2026). Passionné par la Data Science, l'IA et le développement web, je transforme les données en solutions concrètes.",
       projectsButton: "Voir mes projets",
     },
     // Skills Section
