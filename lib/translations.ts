@@ -1,3 +1,5 @@
+import { Quote } from "lucide-react";
+
 export const translations = {
   fr: {
     // Hero Section
@@ -15,6 +17,7 @@ export const translations = {
       title: "À propos",
       description:
         "Basé à Lille (France), j'ai 21 ans et je poursuis ma 3ème année de Licence Informatique à l'Université d'Artois (2022–2026). Passionné par la Data Science, l'IA et le développement web, je transforme les données en solutions concrètes.",
+      quote: "",
       projectsButton: "Voir mes projets",
     },
     // Skills Section
