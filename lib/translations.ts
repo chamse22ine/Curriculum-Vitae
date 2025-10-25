@@ -1,5 +1,3 @@
-import { Quote } from "lucide-react";
-
 export const translations = {
   fr: {
     // Hero Section
