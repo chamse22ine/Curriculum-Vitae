@@ -1,17 +1,16 @@
 "use client"
 
 import type React from "react"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { motion } from "framer-motion"
 import { useInView } from "react-intersection-observer"
-import { Mail, Linkedin, Send } from "lucide-react"
+import { Mail, Linkedin, Send, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useLanguage } from "@/lib/language-context"
-
+import confetti from "canvas-confetti"
 
 export function ContactSection() {
     const { t } = useLanguage()
@@ -43,13 +42,41 @@ export function ContactSection() {
             const result = await res.json()
 
             if (result.success) {
-                toast("Message sent! I&apos;ll get back to you soon.")
+                // 🎉 Animation confetti
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ["#8b5cf6", "#06b6d4", "#10b981"]
+                })
+
+                // ✅ Toast stylisé
+                toast.success(
+                    <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 animate-bounce" />
+                        <div>
+                            <p className="font-semibold">Message envoyé ! 🎉</p>
+                            <p className="text-sm text-muted-foreground">
+                                Je vous répondrai très bientôt.
+                            </p>
+                        </div>
+                    </div>,
+                    {
+                        duration: 5000,
+                        style: {
+                            background: "hsl(var(--background))",
+                            border: "2px solid hsl(var(--primary))",
+                            boxShadow: "0 0 20px rgba(139, 92, 246, 0.3)"
+                        },
+                    }
+                )
+
                 setFormData({ name: "", email: "", subject: "", message: "" })
             } else {
-                toast("Error sending message. Please try again.")
+                toast.error("Erreur lors de l'envoi.")
             }
         } catch {
-            toast("Something went wrong.")
+            toast.error("Une erreur inattendue s'est produite.")
         } finally {
             setIsSubmitting(false)
         }
@@ -101,6 +128,7 @@ export function ContactSection() {
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 className="bg-muted border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground"
+                                required
                             />
                         </div>
 
@@ -111,14 +139,17 @@ export function ContactSection() {
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 className="bg-muted border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground"
+                                required
                             />
                         </div>
+
                         <div>
                             <Input
                                 placeholder={t.contact.subjectPlaceholder}
                                 value={formData.subject}
                                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                 className="bg-muted border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground"
+                                required
                             />
                         </div>
 
@@ -129,6 +160,7 @@ export function ContactSection() {
                                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                 rows={6}
                                 className="bg-muted border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground resize-none"
+                                required
                             />
                         </div>
 
@@ -139,9 +171,8 @@ export function ContactSection() {
                             disabled={isSubmitting}
                         >
                             <Send className="mr-2 h-5 w-5" />
-                            {isSubmitting ? "Sending..." : "Send Message"}
+                            {isSubmitting ? "Envoi en cours..." : "Envoyer le message"}
                         </Button>
-
                     </form>
                 </motion.div>
             </div>
