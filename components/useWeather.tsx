@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { weatherService } from "@/app/api/weather/route";
+import { weatherService } from "@/services/weather/weather.service";
 import type { WeatherData } from "@/types/weather.types";
 
 export function useWeather() {

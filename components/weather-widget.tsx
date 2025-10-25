@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Cloud, Droplets, Wind, Loader2, AlertCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { useWeather } from "@/components/useWeather"
-import { weatherService } from "@/app/api/weather/route"
+import { weatherService } from "@/services/weather/weather.service"
 import Image from "next/image"
 
 export function WeatherWidget() {
