@@ -2,19 +2,18 @@
 
 import dynamic from "next/dynamic"
 import { AnimatedBackground } from "@/components/animated-background"
+import { Toaster } from "sonner"
 
-// Skeleton loader partagé
 const SectionLoader = () => (
   <section className="min-h-[50vh] flex items-center justify-center">
     <div className="animate-pulse space-y-4 w-full max-w-4xl px-4">
-      <div className="h-8 bg-primary/10 rounded w-3/4"></div>
-      <div className="h-4 bg-primary/10 rounded w-full"></div>
-      <div className="h-4 bg-primary/10 rounded w-5/6"></div>
+      <div className="h-8 bg-primary/5 rounded-xl w-3/4"></div>
+      <div className="h-4 bg-primary/5 rounded-xl w-full"></div>
+      <div className="h-4 bg-primary/5 rounded-xl w-5/6"></div>
     </div>
   </section>
 )
 
-// Composants dynamiques avec loader
 const HeroSection = dynamic(() => import("@/components/hero-section").then((m) => ({ default: m.HeroSection })), {
   ssr: false,
   loading: SectionLoader,
@@ -49,28 +48,18 @@ const Footer = dynamic(() => import("@/components/footer").then((m) => ({ defaul
   ssr: false,
 })
 
-const WeatherWidget = dynamic(() => import("@/components/weather-widget").then((m) => ({ default: m.WeatherWidget })), {
-  ssr: false,
-})
-
 const LanguageSwitcher = dynamic(() => import("@/components/language-switcher").then((m) => ({ default: m.LanguageSwitcher })), {
   ssr: false,
 })
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen overflow-hidden bg-background">
       <AnimatedBackground />
+      <Toaster position="top-right" />
 
-      <div className="hidden lg:block relative top-6 left-6 z-50 max-w-xs">
-        <WeatherWidget />
-      </div>
-
-      <div className=" sm:fixed relative top-6 right-6 sm:z-50 flex flex-col gap-4 items-end">
+      <div className="sm:fixed relative top-6 right-6 sm:z-50 flex flex-col gap-4 items-end">
         <LanguageSwitcher />
-        <div className="lg:hidden max-w-xs w-full">
-          <WeatherWidget />
-        </div>
       </div>
 
       <HeroSection />

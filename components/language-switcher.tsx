@@ -14,14 +14,14 @@ export function LanguageSwitcher() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <div className="glassmorphism rounded-full p-1 flex gap-1 border border-primary/20">
+            <div className="glass-card rounded-full p-1 flex gap-1">
                 <Button
                     size="sm"
                     variant={language === "fr" ? "default" : "ghost"}
                     onClick={() => setLanguage("fr")}
                     className={`rounded-full px-4 transition-all duration-300 ${language === "fr"
-                        ? "bg-primary text-black neon-glow-violet"
-                        : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                        ? "bg-linear-to-r from-primary to-accent text-white shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
                         }`}
                 >
                     <Languages className="h-4 w-4 mr-1" />
@@ -32,8 +32,8 @@ export function LanguageSwitcher() {
                     variant={language === "en" ? "default" : "ghost"}
                     onClick={() => setLanguage("en")}
                     className={`rounded-full px-4 transition-all duration-300 ${language === "en"
-                        ? "text-black neon-glow-cyan"
-                        : " hover:text-foreground hover:bg-secondary/10 "
+                        ? "bg-linear-to-r from-secondary to-pink-400 text-white shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/5"
                         }`}
                 >
                     <Languages className="h-4 w-4 mr-1" />

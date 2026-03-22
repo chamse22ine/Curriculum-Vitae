@@ -90,8 +90,8 @@ export const translations = {
             "Chatbot intelligent hébergé sur GCP, utilisant MLOps et crédits cloud",
         },
         {
-          title: "Tetris Game",
-          description: "Jeu codé en Java avec logique complète",
+          title: "Space Invaders",
+          description: "Jeu codé en C avec logique complète",
         },
         {
           title: "Portfolio chams.dev",
@@ -240,8 +240,8 @@ export const translations = {
             "Intelligent chatbot hosted on GCP, using MLOps and cloud credits",
         },
         {
-          title: "Tetris Game",
-          description: "Game coded in Java with complete logic",
+          title: "Space Invaders",
+          description: "Game coded in C with complete logic",
         },
         {
           title: "Portfolio chams.dev",

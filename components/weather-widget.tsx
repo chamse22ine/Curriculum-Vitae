@@ -13,10 +13,10 @@ export function WeatherWidget() {
     if (loading) {
         return (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                <Card className="glass-card p-6 border-primary/20">
+                <Card className="glass-card p-6">
                     <div className="flex items-center justify-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Chargement de la météo...</p>
+                        <p className="text-muted-foreground text-sm">Chargement...</p>
                     </div>
                 </Card>
             </motion.div>
@@ -26,7 +26,7 @@ export function WeatherWidget() {
     if (error || !weather) {
         return (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                <Card className="glass-card p-6 border-destructive/20">
+                <Card className="glass-card p-6">
                     <div className="flex items-center gap-3">
                         <AlertCircle className="h-6 w-6 text-destructive" />
                         <p className="text-sm text-muted-foreground">{error || "Erreur inconnue"}</p>
@@ -42,9 +42,8 @@ export function WeatherWidget() {
 
     return (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-            <Card className="glass-card p-6 border-primary/20 hover:border-primary/40 transition-all duration-300">
+            <Card className="glass-card p-6 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
                 <div className="flex items-center justify-between">
-                    {/* Partie gauche : Icône et température */}
                     <div className="flex items-center gap-4">
                         <div className="relative w-16 h-16">
                             <Image
@@ -66,18 +65,17 @@ export function WeatherWidget() {
                         </div>
                     </div>
 
-                    {/* Partie droite : Détails */}
                     <div className="flex flex-col gap-3 text-sm">
                         <div className="flex items-center gap-2">
-                            <Droplets className="h-4 w-4 text-primary/70" />
+                            <Droplets className="h-4 w-4 text-cyan-500" />
                             <span className="text-muted-foreground">{weather.main.humidity}%</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Wind className="h-4 w-4 text-primary/70" />
+                            <Wind className="h-4 w-4 text-indigo-500" />
                             <span className="text-muted-foreground">{Math.round(weather.wind.speed * 3.6)} km/h</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Cloud className="h-4 w-4 text-primary/70" />
+                            <Cloud className="h-4 w-4 text-pink-500" />
                             <span className="text-muted-foreground">{Math.round(weather.main.feels_like)}°C</span>
                         </div>
                     </div>

@@ -23,36 +23,49 @@ export function SkillsSection() {
             title: t.skills.languages,
             icon: Code2,
             skills: t.skills.skillsList.languages,
-            color: "from-primary to-primary/50",
+            gradient: "from-indigo-500 to-violet-500",
+            bgLight: "bg-indigo-50",
+            borderColor: "border-indigo-200",
+            badgeBg: "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 hover:border-indigo-400",
         },
         {
             title: t.skills.frameworks,
             icon: Cpu,
             skills: t.skills.skillsList.frameworks,
-            color: "from-secondary to-secondary/50",
+            gradient: "from-pink-500 to-rose-500",
+            bgLight: "bg-pink-50",
+            borderColor: "border-pink-200",
+            badgeBg: "bg-pink-50 hover:bg-pink-100 border-pink-200 hover:border-pink-400",
         },
         {
             title: t.skills.dataScience,
             icon: Database,
             skills: t.skills.skillsList.dataScience,
-            color: "from-primary to-secondary",
+            gradient: "from-cyan-500 to-blue-500",
+            bgLight: "bg-cyan-50",
+            borderColor: "border-cyan-200",
+            badgeBg: "bg-cyan-50 hover:bg-cyan-100 border-cyan-200 hover:border-cyan-400",
         },
         {
             title: t.skills.other,
             icon: Cloud,
             skills: t.skills.skillsList.other,
-            color: "from-secondary to-primary",
+            gradient: "from-amber-500 to-orange-500",
+            bgLight: "bg-amber-50",
+            borderColor: "border-amber-200",
+            badgeBg: "bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-400",
         },
     ]
 
     return (
         <section className="relative py-24 px-4 z-10" ref={ref}>
+            <div className="section-divider mb-24" />
             <div className="max-w-7xl mx-auto">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-5xl font-bold text-center mb-16 text-glow-cyan"
+                    className="text-4xl md:text-5xl font-bold text-center mb-16 gradient-text-alt font-(family-name:--font-orbitron)"
                 >
                     {t.skills.title}
                 </motion.h2>
@@ -64,30 +77,35 @@ export function SkillsSection() {
                                 key={category.title}
                                 initial={{ opacity: 0, y: 50 }}
                                 animate={inView ? { opacity: 1, y: 0 } : {}}
-                                transition={{ duration: 0.6, delay: index * 0.1 }}
-                                className="glassmorphism rounded-xl p-6 hover:neon-glow-violet transition-all duration-300 group"
+                                transition={{ duration: 0.6, delay: index * 0.15 }}
+                                className="glass-card-hover rounded-2xl p-6 group"
                             >
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className={`p-3 rounded-lg bg-linear-to-br ${category.color}`}>
+                                <div className="flex items-center gap-4 mb-5">
+                                    <div className={`p-3 rounded-xl bg-linear-to-br ${category.gradient} shadow-lg`}>
                                         <category.icon className="h-6 w-6 text-white" />
                                     </div>
-                                    <h3 className="text-2xl font-bold">{category.title}</h3>
+                                    <h3 className="text-2xl font-bold text-foreground">{category.title}</h3>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {category.skills.map((skill) => (
+                                    {category.skills.map((skill, skillIdx) => (
                                         <Tooltip key={skill}>
                                             <TooltipTrigger asChild>
-                                                <span className="px-3 py-1 rounded-full bg-muted text-sm font-medium border border-primary/30 hover:border-primary hover:bg-primary/10 hover:scale-105 transition-all duration-300 cursor-help">
+                                                <motion.span
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={inView ? { opacity: 1, scale: 1 } : {}}
+                                                    transition={{ duration: 0.4, delay: index * 0.15 + skillIdx * 0.05 }}
+                                                    className={`px-4 py-1.5 rounded-full text-sm font-medium border ${category.badgeBg} hover:scale-105 transition-all duration-300 cursor-help text-foreground/80`}
+                                                >
                                                     {skill}
-                                                </span>
+                                                </motion.span>
                                             </TooltipTrigger>
                                             <TooltipContent
                                                 side="top"
-                                                className="max-w-xs glassmorphism border-primary/30 text-white"
+                                                className="glass-card border-primary/20 text-foreground"
                                             >
                                                 <p className="text-sm">
-                                                    {t.skills.skillsDescriptions?.[skill] || `Compétence en ${skill}`}
+                                                    {t.skills.skillsDescriptions?.[skill] || `${skill}`}
                                                 </p>
                                             </TooltipContent>
                                         </Tooltip>

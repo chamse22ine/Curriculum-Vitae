@@ -1,196 +1,391 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSyncExternalStore, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { AlertCircle, CheckCircle, Trash2, AlertTriangle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createInitialData } from "@/constants/curriculum-data";
-import type { Annee, Semestre, Competence, UE } from "@/types/curriculum.types"
+import { AlertCircle, CheckCircle, Trash2, AlertTriangle, BookOpen, Award, Info, Save, Target, TrendingUp, X } from "lucide-react"
+import { createInitialData } from "@/constants/curriculum-data"
+import type { Annee, Competence } from "@/types/curriculum.types"
+import { moyenneUE, moyenneCompetence, moyenneSemestre, moyenneAnnee, analyserValidation, simulerObjectifs, UE_NAMES, type Objectif, type Simulation } from "@/lib/calculs"
 
+// --- Constants ---
+
+const STORAGE_KEY = "lcer-notes"
+const TAB_LABELS = ["L1", "L2", "L3", "Résumé"]
+
+const RULES = [
+    { icon: CheckCircle, color: "text-indigo-500", bg: "bg-indigo-50/60", border: "border-indigo-100", text: <>Moyenne annuelle <strong className="text-indigo-600">≥ 10/20</strong> ET compétences <strong className="text-indigo-600">≥ 8/20</strong></> },
+    { icon: Award, color: "text-amber-500", bg: "bg-amber-50/60", border: "border-amber-100", text: <>Mentions : <strong className="text-amber-700">AB</strong> (12), <strong className="text-amber-700">B</strong> (14), <strong className="text-amber-700">TB</strong> (16)</> },
+    { icon: AlertTriangle, color: "text-violet-500", bg: "bg-violet-50/60", border: "border-violet-100", text: <>Les compétences <strong className="text-violet-600">se compensent entre semestres</strong> par ECTS</> },
+    { icon: Save, color: "text-emerald-500", bg: "bg-emerald-50/60", border: "border-emerald-100", text: <><strong className="text-emerald-600">Sauvegarde automatique</strong> dans le navigateur</> },
+]
+
+const UE_DOTS: Record<string, string> = { UE1: "bg-blue-400", UE2: "bg-emerald-400", UE3: "bg-purple-400", UE4: "bg-orange-400", UE5: "bg-pink-400" }
+const UE_LEGEND = Object.entries(UE_NAMES).map(([code, label]) => ({ code, label, dot: UE_DOTS[code] }))
+
+// --- Persisted state hook ---
+
+const storageEmitter = new EventTarget()
+
+function usePersistedState(initializer: () => Annee[]) {
+    const getSnapshot = useCallback(() => localStorage.getItem(STORAGE_KEY), [])
+    const getServerSnapshot = useCallback(() => null, [])
+    const subscribe = useCallback((cb: () => void) => {
+        storageEmitter.addEventListener("change", cb)
+        return () => storageEmitter.removeEventListener("change", cb)
+    }, [])
+
+    const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+    const data: Annee[] = raw ? JSON.parse(raw) : initializer()
+
+    const setData = useCallback((updater: Annee[] | ((prev: Annee[]) => Annee[])) => {
+        const current = localStorage.getItem(STORAGE_KEY)
+        const prev: Annee[] = current ? JSON.parse(current) : initializer()
+        const next = typeof updater === "function" ? updater(prev) : updater
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        storageEmitter.dispatchEvent(new Event("change"))
+    }, [initializer])
+
+    return [data, setData] as const
+}
+
+// --- Small UI components ---
+
+function MoyenneIndicator({ value, size = "md" }: { value: number; size?: "sm" | "md" | "lg" }) {
+    const tier = value >= 14 ? "emerald" : value >= 10 ? "blue" : value >= 8 ? "amber" : value > 0 ? "red" : "slate"
+    const colors: Record<string, string> = {
+        emerald: "text-emerald-600 bg-emerald-50 border-emerald-200",
+        blue: "text-blue-600 bg-blue-50 border-blue-200",
+        amber: "text-amber-600 bg-amber-50 border-amber-200",
+        red: "text-red-500 bg-red-50 border-red-200",
+        slate: "text-slate-400 bg-slate-50 border-slate-200",
+    }
+    const sizes: Record<string, string> = {
+        sm: "text-xs px-2 py-0.5",
+        md: "text-sm px-2.5 py-1 font-semibold",
+        lg: "text-lg px-4 py-1.5 font-bold",
+    }
+    return (
+        <span className={`inline-flex items-center rounded-lg border tabular-nums ${colors[tier]} ${sizes[size]}`}>
+            {value > 0 ? value.toFixed(2) : "—"}
+        </span>
+    )
+}
+
+function ValidationStatus({ validated, mention }: { validated: boolean; mention?: string }) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <span className={`flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-1 border ${validated ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-red-500 bg-red-50 border-red-200"}`}>
+                {validated ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                {validated ? "Validée" : "Non validée"}
+            </span>
+            {mention && (
+                <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+                    {mention}
+                </span>
+            )}
+        </div>
+    )
+}
+
+// --- Section components ---
+
+function CompetenceCard({ competence, onNoteChange }: {
+    competence: Competence
+    onNoteChange: (ueIdx: number, ecIdx: number, note: number) => void
+}) {
+    return (
+        <div className={`rounded-xl border overflow-hidden ${competence.color} transition-shadow duration-300 hover:shadow-md`}>
+            <div className={`px-4 py-3 ${competence.bgGradient}`}>
+                <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                        <span className="text-xs font-bold tracking-wide">{competence.code}</span>
+                        <p className="text-[11px] opacity-70 truncate">{competence.name}</p>
+                    </div>
+                    <MoyenneIndicator value={moyenneCompetence(competence)} size="sm" />
+                </div>
+            </div>
+            <div className="p-3 space-y-3">
+                {competence.ues.map((ue, ueIdx) => (
+                    <div key={ue.code} className="space-y-1.5">
+                        {competence.ues.length > 1 && (
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[11px] font-semibold text-foreground/60">{ue.name}</span>
+                                <MoyenneIndicator value={moyenneUE(ue)} size="sm" />
+                            </div>
+                        )}
+                        {ue.elements.map((ec, ecIdx) => (
+                            <div key={ec.name} className="flex items-center gap-2 bg-white/80 rounded-lg px-3 py-2 border border-white">
+                                <span className="text-xs text-foreground/70 flex-1 min-w-0 truncate">{ec.name}</span>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">{ec.ects} ECTS</span>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    max="20"
+                                    step="0.1"
+                                    value={ec.note || ""}
+                                    onChange={(e) => onNoteChange(ueIdx, ecIdx, Number.parseFloat(e.target.value) || 0)}
+                                    className="w-[70px] h-8 text-center text-sm font-medium text-foreground bg-white border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg shadow-sm"
+                                    placeholder="—"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+function ObjectifRow({ obj }: { obj: Objectif }) {
+    if (obj.status === "aucune-note") return null
+    const isGlobal = obj.code === "Global"
+
+    return (
+        <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl ${isGlobal ? "bg-linear-to-r from-primary/5 to-accent/5 border border-primary/10" : "bg-white/60 border border-slate-100"}`}>
+            {obj.status === "ok" ? (
+                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+            ) : obj.status === "impossible" ? (
+                <X className="w-4 h-4 text-red-400 shrink-0" />
+            ) : (
+                <Target className="w-4 h-4 text-amber-500 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+                <span className={`text-xs font-semibold ${isGlobal ? "text-primary" : "text-foreground/80"}`}>
+                    {obj.code}
+                </span>
+                {!isGlobal && <span className="text-[10px] text-muted-foreground ml-1.5 hidden sm:inline">{obj.label}</span>}
+            </div>
+            <div className="text-right shrink-0">
+                {obj.status === "ok" && (
+                    <span className="text-xs font-medium text-emerald-600">
+                        Acquis{obj.ectsRestants === 0 && <span className="text-muted-foreground ml-1">({obj.moyenneActuelle.toFixed(2)})</span>}
+                    </span>
+                )}
+                {obj.status === "besoin" && (
+                    <span className="text-xs font-semibold tabular-nums">
+                        <span className="text-amber-600">{obj.moyenneRequise.toFixed(1)}</span>
+                        <span className="text-muted-foreground font-normal">/20 min</span>
+                    </span>
+                )}
+                {obj.status === "impossible" && (
+                    <span className="text-xs font-medium text-red-400">
+                        {obj.ectsRestants === 0 ? <span className="tabular-nums">{obj.moyenneActuelle.toFixed(2)}/20</span> : "Impossible"}
+                    </span>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function buildConseil(sim: Simulation, allFilled: boolean): string {
+    const globalOk = sim.global.status === "ok"
+    const faibles = sim.objectifs.filter((o) => o.status === "impossible" || o.status === "besoin")
+    const impossibles = sim.objectifs.filter((o) => o.status === "impossible")
+
+    if (allFilled) {
+        if (impossibles.length > 0) {
+            const noms = impossibles.map((o) => `${o.code} (${o.moyenneActuelle.toFixed(1)}/20)`).join(", ")
+            return `Il te manque ${impossibles.length > 1 ? "les compétences" : "la compétence"} ${noms} — il faut au moins 8/20 par compétence. Renseigne-toi sur les rattrapages.`
+        }
+        if (!globalOk) {
+            return `Ta moyenne générale est de ${sim.global.moyenneActuelle.toFixed(2)}/20, il te faut au moins 10/20. Renseigne-toi sur les rattrapages.`
+        }
+        return "Tu remplis toutes les conditions !"
+    }
+
+    const parts: string[] = []
+    if (!globalOk && sim.global.status === "besoin") {
+        parts.push(`une moyenne générale d'au moins ${sim.global.moyenneRequise.toFixed(1)}/20 sur les matières restantes`)
+    }
+    if (faibles.length > 0) {
+        const details = faibles.map((o) =>
+            o.status === "besoin"
+                ? `${o.moyenneRequise.toFixed(1)}/20 min en ${o.code}`
+                : `${o.code} ne peut plus atteindre 8/20`
+        )
+        parts.push(details.join(", "))
+    }
+
+    if (parts.length === 0) return "Tu es sur la bonne voie, continue comme ça !"
+    return `Il te faut ${parts.join(" et ")}.`
+}
+
+function SimulationCard({ annee }: { annee: Annee }) {
+    const sim = simulerObjectifs(annee)
+    if (!sim.visible) return null
+
+    const compObjectifs = sim.objectifs.filter((o) => o.status !== "aucune-note")
+    const hasImpossible = sim.global.status === "impossible" || sim.objectifs.some((o) => o.status === "impossible")
+    const allFilled = sim.global.ectsRestants === 0
+
+    const headerColor = hasImpossible
+        ? "bg-linear-to-r from-red-50/50 to-orange-50/50"
+        : allFilled
+            ? "bg-linear-to-r from-red-50/50 to-amber-50/50"
+            : "bg-linear-to-r from-amber-50/50 to-primary/5"
+    const headerIcon = hasImpossible || allFilled ? "text-red-400" : "text-amber-500"
+    const headerText = allFilled
+        ? "Année non validée — Bilan"
+        : hasImpossible
+            ? "Validation compromise"
+            : "Pour valider ton année"
+
+    return (
+        <div className="glass-card rounded-2xl overflow-hidden">
+            <div className={`px-4 sm:px-5 py-3.5 flex items-center gap-2.5 border-b border-border/50 ${headerColor}`}>
+                <TrendingUp className={`h-4 w-4 shrink-0 ${headerIcon}`} />
+                <h3 className="font-semibold text-sm text-foreground">{headerText}</h3>
+            </div>
+            <div className="p-3 sm:p-4 space-y-1.5">
+                {/* Global objective first */}
+                <ObjectifRow obj={sim.global} />
+
+                {/* Separator */}
+                {compObjectifs.length > 0 && (
+                    <div className="flex items-center gap-2 py-1">
+                        <div className="flex-1 h-px bg-border/50" />
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Par compétence</span>
+                        <div className="flex-1 h-px bg-border/50" />
+                    </div>
+                )}
+
+                {/* Per-competence objectives */}
+                {compObjectifs.map((obj) => <ObjectifRow key={obj.code} obj={obj} />)}
+
+                {/* Conseil */}
+                <p className="text-[11px] text-muted-foreground leading-relaxed pt-2 px-1">
+                    {buildConseil(sim, allFilled)}
+                </p>
+            </div>
+        </div>
+    )
+}
+
+function YearOverview({ annee }: { annee: Annee }) {
+    const { validated, mention, raisons, competencesAnnuelles } = analyserValidation(annee)
+    const moy = moyenneAnnee(annee)
+    const hasErrors = !validated && raisons.length > 0 && raisons[0] !== "Aucune note saisie"
+
+    return (
+        <>
+            <div className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0">
+                        <span className="text-white font-bold text-lg">L{annee.numero}</span>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-lg font-bold text-foreground">Année {annee.numero}</h2>
+                            <MoyenneIndicator value={moy} size="md" />
+                        </div>
+                        {competencesAnnuelles.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                {competencesAnnuelles.map((c) => <MoyenneIndicator key={c.code} value={c.moyenne} size="sm" />)}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <ValidationStatus validated={validated} mention={mention} />
+            </div>
+            {hasErrors && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50/80 border border-red-200">
+                    <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                    <div className="text-sm text-red-700">
+                        <p className="font-semibold mb-1">Conditions non remplies</p>
+                        <ul className="space-y-0.5">
+                            {raisons.map((r, i) => <li key={i} className="text-xs">• {r}</li>)}
+                        </ul>
+                    </div>
+                </div>
+            )}
+            <SimulationCard annee={annee} />
+        </>
+    )
+}
+
+function ResumeTab({ data }: { data: Annee[] }) {
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {data.map((annee) => {
+                    const { validated, mention, competencesAnnuelles } = analyserValidation(annee)
+                    const moy = moyenneAnnee(annee)
+                    return (
+                        <div key={annee.numero} className="glass-card rounded-2xl p-5 space-y-4 hover:shadow-lg transition-shadow duration-300">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-accent flex items-center justify-center">
+                                        <span className="text-white font-bold">L{annee.numero}</span>
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-foreground text-sm">Année {annee.numero}</p>
+                                        <p className="text-xs text-muted-foreground">S{annee.numero * 2 - 1} & S{annee.numero * 2}</p>
+                                    </div>
+                                </div>
+                                <MoyenneIndicator value={moy} size="lg" />
+                            </div>
+                            <ValidationStatus validated={validated} mention={mention} />
+                            {competencesAnnuelles.length > 0 && (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {competencesAnnuelles.map((c) => (
+                                        <div key={c.code} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
+                                            <span className="text-xs font-medium text-muted-foreground">{c.code}</span>
+                                            <MoyenneIndicator value={c.moyenne} size="sm" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Rules */}
+            <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 bg-linear-to-r from-primary/5 to-accent/5 border-b border-border/50">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                        <Info className="h-4 w-4 text-primary" />
+                        Règles de validation
+                    </h3>
+                </div>
+                <div className="p-5 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {RULES.map((rule, i) => (
+                            <div key={i} className={`flex items-start gap-2.5 p-3 rounded-xl ${rule.bg} border ${rule.border}`}>
+                                <rule.icon className={`h-4 w-4 ${rule.color} mt-0.5 shrink-0`} />
+                                <p className="text-xs text-foreground/80 leading-relaxed">{rule.text}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">Compétences</p>
+                        <div className="flex flex-wrap gap-2">
+                            {UE_LEGEND.map((ue) => (
+                                <span key={ue.code} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-slate-50 border border-slate-100 rounded-full px-3 py-1">
+                                    <span className={`w-2 h-2 rounded-full ${ue.dot}`} />
+                                    <strong className="text-foreground/70">{ue.code}</strong>
+                                    <span className="hidden sm:inline">{ue.label}</span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// --- Main component ---
 
 export default function LCeRCalculator() {
-    const [data, setData] = useState<Annee[]>(() => {
-        if (typeof window !== "undefined") {
-            const saved = localStorage.getItem("lcer-notes")
-            return saved ? JSON.parse(saved) : createInitialData()
-        }
-        return createInitialData()
-    })
+    const [data, setData] = usePersistedState(createInitialData)
 
-    // Sauvegarde automatique
-    useEffect(() => {
-        localStorage.setItem("lcer-notes", JSON.stringify(data))
-    }, [data])
-
-    // Calculs
-    const calculerMoyenneUE = (ue: UE): number => {
-        const notesValides = ue.elements.filter((ec) => ec.note !== undefined && ec.note !== null)
-        if (notesValides.length === 0) return 0
-
-        const sommeNotesPonderees = notesValides.reduce((sum, ec) => sum + ec.note! * ec.ects, 0)
-        const sommeECTS = notesValides.reduce((sum, ec) => sum + ec.ects, 0)
-
-        return sommeECTS > 0 ? sommeNotesPonderees / sommeECTS : 0
-    }
-
-    const calculerMoyenneCompetenceSemestre = (competence: Competence): number => {
-        const uesAvecNotes = competence.ues.filter((ue) => {
-            const moyenne = calculerMoyenneUE(ue)
-            return moyenne > 0
-        })
-
-        if (uesAvecNotes.length === 0) return 0
-
-        const sommePonderee = uesAvecNotes.reduce((sum, ue) => {
-            const moyenne = calculerMoyenneUE(ue)
-            return sum + moyenne * ue.ects
-        }, 0)
-
-        const sommeECTS = uesAvecNotes.reduce((sum, ue) => sum + ue.ects, 0)
-
-        return sommeECTS > 0 ? sommePonderee / sommeECTS : 0
-    }
-
-    // NOUVELLE FONCTION : Calcul de la moyenne d'une compétence sur l'année entière
-    const calculerMoyenneCompetenceAnnee = (annee: Annee, codeCompetence: string): number => {
-        const [s1, s2] = annee.semestres
-
-        // Trouver les compétences correspondantes dans chaque semestre
-        const comp1 = s1.competences.find((c) => c.code.startsWith(codeCompetence.substring(0, 3)))
-        const comp2 = s2.competences.find((c) => c.code.startsWith(codeCompetence.substring(0, 3)))
-
-        if (!comp1 && !comp2) return 0
-
-        let sommePonderee = 0
-        let sommeECTS = 0
-
-        // Semestre 1
-        if (comp1) {
-            comp1.ues.forEach((ue) => {
-                ue.elements.forEach((ec) => {
-                    if (ec.note !== undefined && ec.note !== null) {
-                        sommePonderee += ec.note * ec.ects
-                        sommeECTS += ec.ects
-                    }
-                })
-            })
-        }
-
-        // Semestre 2
-        if (comp2) {
-            comp2.ues.forEach((ue) => {
-                ue.elements.forEach((ec) => {
-                    if (ec.note !== undefined && ec.note !== null) {
-                        sommePonderee += ec.note * ec.ects
-                        sommeECTS += ec.ects
-                    }
-                })
-            })
-        }
-
-        return sommeECTS > 0 ? sommePonderee / sommeECTS : 0
-    }
-
-    const calculerMoyenneSemestre = (semestre: Semestre): number => {
-        const competencesAvecNotes = semestre.competences.filter((comp) => {
-            const moyenne = calculerMoyenneCompetenceSemestre(comp)
-            return moyenne > 0
-        })
-
-        if (competencesAvecNotes.length === 0) return 0
-
-        const sommePonderee = competencesAvecNotes.reduce((sum, comp) => {
-            const moyenne = calculerMoyenneCompetenceSemestre(comp)
-            const ectsComp = comp.ues.reduce((s, ue) => s + ue.ects, 0)
-            return sum + moyenne * ectsComp
-        }, 0)
-
-        const sommeECTS = competencesAvecNotes.reduce((sum, comp) => {
-            return sum + comp.ues.reduce((s, ue) => s + ue.ects, 0)
-        }, 0)
-
-        return sommeECTS > 0 ? sommePonderee / sommeECTS : 0
-    }
-
-    const calculerMoyenneAnnee = (annee: Annee): number => {
-        const [s1, s2] = annee.semestres
-        const moyS1 = calculerMoyenneSemestre(s1)
-        const moyS2 = calculerMoyenneSemestre(s2)
-
-        if (moyS1 === 0 && moyS2 === 0) return 0
-        if (moyS1 === 0) return moyS2
-        if (moyS2 === 0) return moyS1
-
-        return (moyS1 + moyS2) / 2
-    }
-
-    const analyserValidationAnnee = (
-        annee: Annee,
-    ): {
-        validated: boolean
-        mention?: string
-        raisons: string[]
-        competencesAnnuelles: { code: string; moyenne: number }[]
-    } => {
-        const moyenneAnnee = calculerMoyenneAnnee(annee)
-        const raisons: string[] = []
-
-        if (moyenneAnnee === 0) {
-            raisons.push("Aucune note saisie")
-            return { validated: false, raisons, competencesAnnuelles: [] }
-        }
-
-        // Calculer les moyennes des compétences sur l'année
-        const competencesAnnuelles = [
-            { code: "UE1", moyenne: calculerMoyenneCompetenceAnnee(annee, "UE1") },
-            { code: "UE2", moyenne: calculerMoyenneCompetenceAnnee(annee, "UE2") },
-            { code: "UE3", moyenne: calculerMoyenneCompetenceAnnee(annee, "UE3") },
-            { code: "UE4", moyenne: calculerMoyenneCompetenceAnnee(annee, "UE4") },
-            { code: "UE5", moyenne: calculerMoyenneCompetenceAnnee(annee, "UE5") },
-        ].filter((comp) => comp.moyenne > 0)
-
-        // Vérifier la moyenne générale
-        const moyenneInsuffisante = moyenneAnnee < 10
-        if (moyenneInsuffisante) {
-            raisons.push(`Moyenne générale insuffisante (${moyenneAnnee.toFixed(2)}/20 < 10/20)`)
-        }
-
-        // Vérifier toutes les compétences >= 8 (sur l'année)
-        const competencesInsuffisantes = competencesAnnuelles.filter((comp) => comp.moyenne < 8)
-
-        if (competencesInsuffisantes.length > 0) {
-            const details = competencesInsuffisantes.map((comp) => `${comp.code} (${comp.moyenne.toFixed(2)}/20)`).join(", ")
-            raisons.push(`Compétence(s) annuelle(s) < 8/20 : ${details}`)
-        }
-
-        const validated = !moyenneInsuffisante && competencesInsuffisantes.length === 0
-
-        let mention: string | undefined
-        if (validated) {
-            if (moyenneAnnee >= 16) mention = "Très bien"
-            else if (moyenneAnnee >= 14) mention = "Bien"
-            else if (moyenneAnnee >= 12) mention = "Assez bien"
-        }
-
-        return { validated, mention, raisons, competencesAnnuelles }
-    }
-
-    const updateNote = (
-        anneeIndex: number,
-        semestreIndex: number,
-        compIndex: number,
-        ueIndex: number,
-        ecIndex: number,
-        note: number,
-    ) => {
-        const newData = [...data]
-        newData[anneeIndex].semestres[semestreIndex].competences[compIndex].ues[ueIndex].elements[ecIndex].note = note
-        setData(newData)
+    const updateNote = (anneeIdx: number, semIdx: number, compIdx: number, ueIdx: number, ecIdx: number, note: number) => {
+        const next = [...data]
+        next[anneeIdx].semestres[semIdx].competences[compIdx].ues[ueIdx].elements[ecIdx].note = note
+        setData(next)
     }
 
     const resetData = () => {
@@ -200,327 +395,58 @@ export default function LCeRCalculator() {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl">
-            <div className="container mx-auto p-2 sm:p-4 max-w-7xl">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm border">
-                        <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Calculateur de Moyenne
-                        </h1>
-                        <p className="text-sm sm:text-base text-slate-600">Licence Informatique</p>
-                    </div>
-                    <Button variant="destructive" onClick={resetData} className="w-full sm:w-auto shadow-lg">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Effacer tout
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-6">
+            <Tabs defaultValue="annee1" className="w-full">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <TabsList className="glass-card p-1 h-auto inline-flex w-auto">
+                        {TAB_LABELS.map((label, i) => (
+                            <TabsTrigger
+                                key={label}
+                                value={i < 3 ? `annee${i + 1}` : "resume"}
+                                className="text-sm px-5 py-2 data-[state=active]:bg-linear-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-300"
+                            >
+                                {label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <Button variant="ghost" size="sm" onClick={resetData} className="text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 className="w-4 h-4 mr-1.5" />
+                        Réinitialiser
                     </Button>
                 </div>
 
-                <Tabs defaultValue="annee1" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-6 bg-white/80 backdrop-blur-sm">
-                        <TabsTrigger
-                            value="annee1"
-                            className=" text-xs sm:text-sm data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
-                        >
-                            Année 1
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="annee2"
-                            className="text-xs sm:text-sm data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
-                        >
-                            Année 2
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="annee3"
-                            className="text-xs sm:text-sm data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
-                        >
-                            Année 3
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="resume"
-                            className="text-xs sm:text-sm data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
-                        >
-                            Résumé
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {data.map((annee, anneeIndex) => (
-                        <TabsContent key={annee.numero} value={`annee${annee.numero}`}>
-                            <div className="space-y-4 sm:space-y-6">
-                                <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 p-2">
-                                    <CardHeader className="pb-3 bg-linear-to-r from-slate-50 to-blue-50 rounded-t-lg ">
-                                        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2">
-                                            <span className="text-xl font-bold">Année {annee.numero}</span>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {(() => {
-                                                    const { validated, mention } = analyserValidationAnnee(annee)
-                                                    const moyenne = calculerMoyenneAnnee(annee)
-                                                    return (
-                                                        <>
-                                                            <Badge
-                                                                variant={validated ? "default" : "destructive"}
-                                                                className="text-xs sm:text-sm shadow-sm"
-                                                            >
-                                                                {moyenne > 0 ? moyenne.toFixed(2) : "N/A"}
-                                                            </Badge>
-                                                            {validated ? (
-                                                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                                                            ) : (
-                                                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
-                                                            )}
-                                                            {mention && (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-xs sm:text-sm bg-linear-to-r from-yellow-100 to-orange-100 text-orange-800 shadow-sm"
-                                                                >
-                                                                    {mention}
-                                                                </Badge>
-                                                            )}
-                                                        </>
-                                                    )
-                                                })()}
-                                            </div>
-                                        </CardTitle>
-                                        {(() => {
-                                            const { validated, raisons, competencesAnnuelles } = analyserValidationAnnee(annee)
-                                            return (
-                                                <div className="space-y-3">
-                                                    {/* Affichage des moyennes annuelles par compétence */}
-                                                    {competencesAnnuelles.length > 0 && (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <span className="text-sm font-medium text-slate-700">Moyennes annuelles :</span>
-                                                            {competencesAnnuelles.map((comp) => (
-                                                                <Badge
-                                                                    key={comp.code}
-                                                                    variant={
-                                                                        comp.moyenne >= 10 ? "default" : comp.moyenne >= 8 ? "secondary" : "destructive"
-                                                                    }
-                                                                    className="text-xs"
-                                                                >
-                                                                    {comp.code}: {comp.moyenne.toFixed(2)}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {!validated && raisons.length > 0 && (
-                                                        <Alert className="bg-red-50 border-red-200">
-                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                            <AlertDescription className="text-xs sm:text-sm text-red-800">
-                                                                <strong>Année non validée :</strong>
-                                                                <ul className="mt-1 ml-4 list-disc">
-                                                                    {raisons.map((raison, index) => (
-                                                                        <li key={index}>{raison}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    )}
-                                                </div>
-                                            )
-                                        })()}
-                                    </CardHeader>
-                                </Card>
-
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                                    {annee.semestres.map((semestre, semestreIndex) => (
-                                        <Card key={semestre.numero} className="bg-white/90 backdrop-blur-sm shadow-lg border-0 ">
-                                            <CardHeader className="pb-3 bg-linear-to-r from-indigo-50 to-purple-50 rounded-t-lg p-4 mx-4">
-                                                <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-base sm:text-lg">
-                                                    <span className="font-bold text-black">Semestre {semestre.numero}</span>
-                                                    <Badge variant="outline" className="text-xs sm:text-sm w-fit bg-white/80 shadow-sm text-black">
-                                                        Moyenne: {calculerMoyenneSemestre(semestre).toFixed(2)}
-                                                    </Badge>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-3 sm:space-y-4">
-                                                {semestre.competences.map((competence, compIndex) => (
-                                                    <Card
-                                                        key={competence.code}
-                                                        className={`border-2 ${competence.color} ${competence.bgGradient} shadow-md`}
-                                                    >
-                                                        <CardHeader className="pb-2 sm:pb-3">
-                                                            <CardTitle className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                                <span className="font-bold">{competence.code}</span>
-                                                                <Badge
-                                                                    variant={
-                                                                        calculerMoyenneCompetenceSemestre(competence) >= 10
-                                                                            ? "default"
-                                                                            : calculerMoyenneCompetenceSemestre(competence) >= 8
-                                                                                ? "secondary"
-                                                                                : "destructive"
-                                                                    }
-                                                                    className="text-xs w-fit shadow-sm"
-                                                                >
-                                                                    {calculerMoyenneCompetenceSemestre(competence).toFixed(2)}
-                                                                </Badge>
-                                                            </CardTitle>
-                                                            <CardDescription className="text-xs font-medium">{competence.name}</CardDescription>
-                                                        </CardHeader>
-                                                        <CardContent className="pt-0 space-y-3">
-                                                            {competence.ues.map((ue, ueIndex) => (
-                                                                <div key={ue.code} className="space-y-2">
-                                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
-                                                                        <Label className="text-xs font-medium leading-tight">{ue.name}</Label>
-                                                                        <Badge variant="outline" className="text-xs w-fit bg-black shadow-sm">
-                                                                            {calculerMoyenneUE(ue).toFixed(2)}
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        {ue.elements.map((ec, ecIndex) => (
-                                                                            <div
-                                                                                key={ec.name}
-                                                                                className="flex flex-col sm:flex-row sm:items-center gap-2 bg-white/60 p-2 rounded-md"
-                                                                            >
-                                                                                <Label className="text-xs flex-1 leading-tight font-medium">{ec.name}</Label>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Badge variant="outline" className="text-xs whitespace-nowrap bg-black">
-                                                                                        {ec.ects} ECTS
-                                                                                    </Badge>
-                                                                                    <Input
-                                                                                        type="number"
-                                                                                        min="0"
-                                                                                        max="20"
-                                                                                        step="0.1"
-                                                                                        value={ec.note || ""}
-                                                                                        onChange={(e) =>
-                                                                                            updateNote(
-                                                                                                anneeIndex,
-                                                                                                semestreIndex,
-                                                                                                compIndex,
-                                                                                                ueIndex,
-                                                                                                ecIndex,
-                                                                                                Number.parseFloat(e.target.value) || 0,
-                                                                                            )
-                                                                                        }
-                                                                                        className="w-16 sm:w-20 h-8 text-xs text-white shadow-sm border-2 focus:border-blue-400"
-                                                                                        placeholder="Note"
-                                                                                    />
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </CardContent>
-                                                    </Card>
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
-                        </TabsContent>
-                    ))}
-
-                    <TabsContent value="resume">
-                        <div className="space-y-4 sm:space-y-6">
-                            <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 ">
-                                <CardHeader className="bg-linear-to-r from-slate-50 to-indigo-50 rounded-t-lg mx-2 p-2">
-                                    <CardTitle className="text-lg sm:text-xl font-bold text-black">Résumé général</CardTitle>
-                                    <CardDescription className="text-sm">
-                                        Vue d&apos;ensemble de votre progression dans la licence
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="">
-                                    <div className="space-y-4">
-                                        {data.map((annee) => {
-                                            const { validated, mention, raisons, competencesAnnuelles } = analyserValidationAnnee(annee)
-                                            const moyenne = calculerMoyenneAnnee(annee)
-
-                                            return (
-                                                <div key={annee.numero} className="space-y-3">
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 bg-linear-to-r from-white to-slate-50 shadow-sm">
-                                                        <div>
-                                                            <h3 className="font-bold text-sm sm:text-base text-black">Année {annee.numero}</h3>
-                                                            <p className="text-xs sm:text-sm text-slate-600">
-                                                                Semestres {annee.numero * 2 - 1} et {annee.numero * 2}
-                                                            </p>
-                                                            {/* Moyennes des compétences annuelles */}
-                                                            {competencesAnnuelles.length > 0 && (
-                                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                                    {competencesAnnuelles.map((comp) => (
-                                                                        <Badge
-                                                                            key={comp.code}
-                                                                            variant={
-                                                                                comp.moyenne >= 10 ? "default" : comp.moyenne >= 8 ? "secondary" : "destructive"
-                                                                            }
-                                                                            className="text-xs"
-                                                                        >
-                                                                            {comp.code}: {comp.moyenne.toFixed(2)}
-                                                                        </Badge>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Badge
-                                                                variant={validated ? "default" : "destructive"}
-                                                                className="text-xs sm:text-sm shadow-sm"
-                                                            >
-                                                                {moyenne > 0 ? moyenne.toFixed(2) : "N/A"}
-                                                            </Badge>
-                                                            {validated ? (
-                                                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                                                            ) : (
-                                                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
-                                                            )}
-                                                            {mention && (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-xs sm:text-sm bg-linear-to-r from-yellow-100 to-orange-100 text-orange-800 shadow-sm"
-                                                                >
-                                                                    {mention}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {!validated && raisons.length > 0 && (
-                                                        <Alert className="bg-red-50 border-red-200">
-                                                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                                                            <AlertDescription className="text-xs sm:text-sm text-red-800">
-                                                                <strong>Problèmes détectés :</strong>
-                                                                <ul className="mt-1 ml-4 list-disc">
-                                                                    {raisons.map((raison, raisonIndex) => (
-                                                                        <li key={raisonIndex}>{raison}</li>
-                                                                    ))}
-                                                                </ul>
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
+                {data.map((annee, anneeIdx) => (
+                    <TabsContent key={annee.numero} value={`annee${annee.numero}`} className="space-y-6">
+                        <YearOverview annee={annee} />
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            {annee.semestres.map((semestre, semIdx) => (
+                                <div key={semestre.numero} className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <BookOpen className="h-4 w-4 text-primary" />
+                                            <h3 className="font-semibold text-foreground">Semestre {semestre.numero}</h3>
+                                        </div>
+                                        <MoyenneIndicator value={moyenneSemestre(semestre)} size="md" />
                                     </div>
-                                </CardContent>
-                            </Card>
-
-                            <Alert className="bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
-                                <AlertCircle className="h-4 w-4 text-blue-600" />
-                                <AlertDescription className="text-xs sm:text-sm text-blue-900">
-                                    <strong>Règles de validation :</strong>
-                                    <br />• Une année est validée si la moyenne annuelle ≥ 10/20 ET toutes les compétences annuelles ≥
-                                    8/20
-                                    <br />• <strong>Les compétences se compensent entre semestres</strong> (pondération par ECTS)
-                                    <br />• Mentions : Assez bien (12-14), Bien (14-16), Très bien (≥16)
-                                    <br />• Les données sont sauvegardées automatiquement dans votre navigateur
-                                    <br />• <span className="inline-block w-3 h-3 bg-blue-100 border border-blue-300 rounded mr-1"></span>
-                                    UE1: Modélisation numérique
-                                    <span className="inline-block w-3 h-3 bg-emerald-100 border border-emerald-300 rounded mr-1 ml-2"></span>
-                                    UE2: Solutions informatiques
-                                    <span className="inline-block w-3 h-3 bg-purple-100 border border-purple-300 rounded mr-1 ml-2"></span>
-                                    UE3: Gestion solution
-                                    <br />•{" "}
-                                    <span className="inline-block w-3 h-3 bg-orange-100 border border-orange-300 rounded mr-1"></span>UE4:
-                                    Projet informatique
-                                    <span className="inline-block w-3 h-3 bg-pink-100 border border-pink-300 rounded mr-1 ml-2"></span>
-                                    UE5: Projet professionnel
-                                </AlertDescription>
-                            </Alert>
+                                    <div className="space-y-3">
+                                        {semestre.competences.map((comp, compIdx) => (
+                                            <CompetenceCard
+                                                key={comp.code}
+                                                competence={comp}
+                                                onNoteChange={(ueIdx, ecIdx, note) => updateNote(anneeIdx, semIdx, compIdx, ueIdx, ecIdx, note)}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </TabsContent>
-                </Tabs>
-            </div>
+                ))}
+
+                <TabsContent value="resume">
+                    <ResumeTab data={data} />
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
