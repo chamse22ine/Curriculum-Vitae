@@ -78,7 +78,7 @@ export function HeroSection() {
                 <div className="space-y-6">
                     <h1
                         ref={titleRef}
-                        className="text-5xl md:text-8xl font-bold tracking-tight font-(family-name:--font-orbitron)"
+                        className="text-5xl md:text-8xl font-bold tracking-tight font-display"
                         style={{ perspective: "500px" }}
                     >
                         {t.hero.title.split(" ").map((word, wi) => (
@@ -87,7 +87,7 @@ export function HeroSection() {
                                 {word.split("").map((char, ci) => (
                                     <span
                                         key={`${wi}-${ci}`}
-                                        className="char inline-block gradient-text"
+                                        className="char inline-block text-primary"
                                         style={{ opacity: 0 }}
                                     >
                                         {char}

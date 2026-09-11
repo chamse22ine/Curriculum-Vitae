@@ -31,7 +31,7 @@ export function AnimatedBackground() {
         ]
 
         const colors = [
-            new THREE.Color(0x6366f1), // indigo
+            new THREE.Color(0x6366f1), // ancienne couleur primaire (fond retiré à l'étape 2)
             new THREE.Color(0xec4899), // pink
             new THREE.Color(0x8b5cf6), // violet
             new THREE.Color(0x06b6d4), // cyan

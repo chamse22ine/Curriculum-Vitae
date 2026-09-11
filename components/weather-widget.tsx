@@ -13,7 +13,7 @@ export function WeatherWidget() {
     if (loading) {
         return (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                <Card className="glass-card p-6">
+                <Card className="bg-surface border border-hairline shadow-raise p-6">
                     <div className="flex items-center justify-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <p className="text-muted-foreground text-sm">Chargement...</p>
@@ -26,7 +26,7 @@ export function WeatherWidget() {
     if (error || !weather) {
         return (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                <Card className="glass-card p-6">
+                <Card className="bg-surface border border-hairline shadow-raise p-6">
                     <div className="flex items-center gap-3">
                         <AlertCircle className="h-6 w-6 text-destructive" />
                         <p className="text-sm text-muted-foreground">{error || "Erreur inconnue"}</p>
@@ -42,7 +42,7 @@ export function WeatherWidget() {
 
     return (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-            <Card className="glass-card p-6 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
+            <Card className="bg-surface border border-hairline shadow-raise p-6 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="relative w-16 h-16">
@@ -71,7 +71,7 @@ export function WeatherWidget() {
                             <span className="text-muted-foreground">{weather.main.humidity}%</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Wind className="h-4 w-4 text-indigo-500" />
+                            <Wind className="h-4 w-4 text-primary" />
                             <span className="text-muted-foreground">{Math.round(weather.wind.speed * 3.6)} km/h</span>
                         </div>
                         <div className="flex items-center gap-2">

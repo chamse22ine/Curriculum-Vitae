@@ -23,10 +23,10 @@ export function SkillsSection() {
             title: t.skills.languages,
             icon: Code2,
             skills: t.skills.skillsList.languages,
-            gradient: "from-indigo-500 to-violet-500",
-            bgLight: "bg-indigo-50",
-            borderColor: "border-indigo-200",
-            badgeBg: "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 hover:border-indigo-400",
+            gradient: "from-c1 to-c1",
+            bgLight: "bg-surface-sunk",
+            borderColor: "border-hairline",
+            badgeBg: "bg-surface-sunk hover:bg-surface border-hairline hover:border-primary",
         },
         {
             title: t.skills.frameworks,
@@ -59,13 +59,13 @@ export function SkillsSection() {
 
     return (
         <section className="relative py-24 px-4 z-10" ref={ref}>
-            <div className="section-divider mb-24" />
+            <div className="h-px bg-hairline mb-24" />
             <div className="max-w-7xl mx-auto">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-5xl font-bold text-center mb-16 gradient-text-alt font-(family-name:--font-orbitron)"
+                    className="text-4xl md:text-5xl font-bold text-center mb-16 text-primary font-display"
                 >
                     {t.skills.title}
                 </motion.h2>
@@ -78,7 +78,7 @@ export function SkillsSection() {
                                 initial={{ opacity: 0, y: 50 }}
                                 animate={inView ? { opacity: 1, y: 0 } : {}}
                                 transition={{ duration: 0.6, delay: index * 0.15 }}
-                                className="glass-card-hover rounded-2xl p-6 group"
+                                className="bg-surface border border-hairline shadow-raise transition-colors duration-150 hover:border-hairline-strong rounded-2xl p-6 group"
                             >
                                 <div className="flex items-center gap-4 mb-5">
                                     <div className={`p-3 rounded-xl bg-linear-to-br ${category.gradient} shadow-lg`}>
@@ -102,7 +102,7 @@ export function SkillsSection() {
                                             </TooltipTrigger>
                                             <TooltipContent
                                                 side="top"
-                                                className="glass-card border-primary/20 text-foreground"
+                                                className="bg-surface border border-hairline shadow-raise border-primary/20 text-foreground"
                                             >
                                                 <p className="text-sm">
                                                     {t.skills.skillsDescriptions?.[skill] || `${skill}`}

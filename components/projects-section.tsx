@@ -7,12 +7,12 @@ import { useLanguage } from "@/lib/language-context"
 
 const projectIcons = [Brain, Plane, Gamepad2, Globe, Trophy, School]
 const projectGradients = [
-    "from-indigo-500 to-violet-500",
+    "from-c1 to-c1",
     "from-pink-500 to-rose-500",
     "from-cyan-500 to-blue-500",
     "from-amber-500 to-orange-500",
     "from-emerald-500 to-teal-500",
-    "from-purple-500 to-fuchsia-500",
+    "from-c5 to-c5",
 ]
 
 export function ProjectsSection() {
@@ -24,13 +24,13 @@ export function ProjectsSection() {
 
     return (
         <section id="projects" className="relative py-24 px-4 z-10" ref={ref}>
-            <div className="section-divider mb-24" />
+            <div className="h-px bg-hairline mb-24" />
             <div className="max-w-7xl mx-auto">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-5xl font-bold text-center mb-16 gradient-text font-(family-name:--font-orbitron)"
+                    className="text-4xl md:text-5xl font-bold text-center mb-16 text-primary font-display"
                 >
                     {t.projects.title}
                 </motion.h2>
@@ -46,7 +46,7 @@ export function ProjectsSection() {
                                 initial={{ opacity: 0, y: 40 }}
                                 animate={inView ? { opacity: 1, y: 0 } : {}}
                                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                                className="glass-card-hover rounded-2xl p-6 group cursor-pointer"
+                                className="bg-surface border border-hairline shadow-raise transition-colors duration-150 hover:border-hairline-strong rounded-2xl p-6 group cursor-pointer"
                             >
                                 <div
                                     className={`w-14 h-14 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}

@@ -15,7 +15,7 @@ const STORAGE_KEY = "lcer-notes"
 const TAB_LABELS = ["L1", "L2", "L3", "Résumé"]
 
 const RULES = [
-    { icon: CheckCircle, color: "text-indigo-500", bg: "bg-indigo-50/60", border: "border-indigo-100", text: <>Moyenne annuelle <strong className="text-indigo-600">≥ 10/20</strong> ET compétences <strong className="text-indigo-600">≥ 8/20</strong></> },
+    { icon: CheckCircle, color: "text-primary", bg: "bg-surface-sunk", border: "border-hairline", text: <>Moyenne annuelle <strong className="text-primary">≥ 10/20</strong> ET compétences <strong className="text-primary">≥ 8/20</strong></> },
     { icon: Award, color: "text-amber-500", bg: "bg-amber-50/60", border: "border-amber-100", text: <>Mentions : <strong className="text-amber-700">AB</strong> (12), <strong className="text-amber-700">B</strong> (14), <strong className="text-amber-700">TB</strong> (16)</> },
     { icon: AlertTriangle, color: "text-violet-500", bg: "bg-violet-50/60", border: "border-violet-100", text: <>Les compétences <strong className="text-violet-600">se compensent entre semestres</strong> par ECTS</> },
     { icon: Save, color: "text-emerald-500", bg: "bg-emerald-50/60", border: "border-emerald-100", text: <><strong className="text-emerald-600">Sauvegarde automatique</strong> dans le navigateur</> },
@@ -80,10 +80,10 @@ function YearOverview({ annee }: { annee: Annee }) {
 
     return (
         <>
-            <div className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="bg-surface border border-hairline shadow-raise rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                        <span className="text-white font-bold text-lg">L{annee.numero}</span>
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                        <span className="text-on-primary font-bold text-lg">L{annee.numero}</span>
                     </div>
                     <div>
                         <div className="flex items-center gap-3">
@@ -123,11 +123,11 @@ function ResumeTab({ data }: { data: Annee[] }) {
                     const { validated, mention, competencesAnnuelles } = analyserValidation(annee)
                     const moy = moyenneAnnee(annee)
                     return (
-                        <div key={annee.numero} className="glass-card rounded-2xl p-5 space-y-4 hover:shadow-lg transition-shadow duration-300">
+                        <div key={annee.numero} className="bg-surface border border-hairline shadow-raise rounded-2xl p-5 space-y-4 hover:shadow-lg transition-shadow duration-300">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-accent flex items-center justify-center">
-                                        <span className="text-white font-bold">L{annee.numero}</span>
+                                    <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                                        <span className="text-on-primary font-bold">L{annee.numero}</span>
                                     </div>
                                     <div>
                                         <p className="font-bold text-foreground text-sm">Année {annee.numero}</p>
@@ -153,8 +153,8 @@ function ResumeTab({ data }: { data: Annee[] }) {
             </div>
 
             {/* Rules */}
-            <div className="glass-card rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 bg-linear-to-r from-primary/5 to-accent/5 border-b border-border/50">
+            <div className="bg-surface border border-hairline shadow-raise rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 bg-surface-sunk border-b border-border/50">
                     <h3 className="font-bold text-foreground flex items-center gap-2">
                         <Info className="h-4 w-4 text-primary" />
                         Règles de validation
@@ -208,12 +208,12 @@ export default function LCeRCalculator() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-6">
             <Tabs defaultValue="annee1" className="w-full">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <TabsList className="glass-card p-1 h-auto inline-flex w-auto">
+                    <TabsList className="bg-surface border border-hairline shadow-raise p-1 h-auto inline-flex w-auto">
                         {TAB_LABELS.map((label, i) => (
                             <TabsTrigger
                                 key={label}
                                 value={i < 3 ? `annee${i + 1}` : "resume"}
-                                className="text-sm px-5 py-2 data-[state=active]:bg-linear-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-300"
+                                className="text-sm px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-on-primary data-[state=active]:shadow-md rounded-lg transition-all duration-300"
                             >
                                 {label}
                             </TabsTrigger>

@@ -6,6 +6,7 @@ import { animate } from "animejs"
 import { ArrowRight, Calculator, Mail, Code, Database, Brain, Sparkles } from "lucide-react"
 import { Github, Linkedin } from "@/components/brand-icons"
 import { AnimatedBackground } from "@/components/animated-background"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 // Pill component for floating badges
 function Pill({
@@ -23,12 +24,12 @@ function Pill({
   const yearsAgo = year ? currentYear - year : null
 
   return (
-    <div className={`glass-pill px-4 py-2.5 rounded-full ${className}`}>
+    <div className={`bg-surface border border-hairline shadow-float px-4 py-2.5 rounded-full ${className}`}>
       <div className="flex flex-col">
         {subtitle && (
           <span className="text-[10px] text-muted-foreground font-medium">{subtitle}</span>
         )}
-        <span className="text-xs font-bold gradient-text">{title}</span>
+        <span className="text-xs font-bold text-primary">{title}</span>
         {yearsAgo !== null && (
           <span className="text-[10px] text-muted-foreground text-right">
             {yearsAgo === 0 ? "This year" : `${yearsAgo} year${yearsAgo > 1 ? "s" : ""} ago`}
@@ -142,7 +143,7 @@ function HeroSection() {
                   </span>
                 ))}
                 {name.split("").map((char, i) => (
-                  <span key={`name-${i}`} className="char inline-block gradient-text-flashy" style={{ opacity: 0 }}>
+                  <span key={`name-${i}`} className="char inline-block text-primary" style={{ opacity: 0 }}>
                     {char}
                   </span>
                 ))}
@@ -156,7 +157,7 @@ function HeroSection() {
               </p>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black">
                 {title.split("").map((char, i) => (
-                  <span key={i} className="char inline-block gradient-text-flashy" style={{ opacity: 0 }}>
+                  <span key={i} className="char inline-block text-primary" style={{ opacity: 0 }}>
                     {char === " " ? "\u00A0" : char}
                   </span>
                 ))}
@@ -172,7 +173,7 @@ function HeroSection() {
               style={{ opacity: 0 }}
             >
               I build{" "}
-              <span className="gradient-text-flashy-inv">apps.</span>
+              <span className="text-primary">apps.</span>
             </p>
           </div>
 
@@ -190,23 +191,23 @@ function HeroSection() {
 function BuilderSection() {
   return (
     <section className="relative py-24 -my-12 overflow-hidden" style={{ transform: "skewY(2deg)" }}>
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-indigo-600" />
+      <div className="absolute inset-0 bg-primary" />
 
       <div className="relative max-w-6xl mx-auto px-4" style={{ transform: "skewY(-2deg)" }}>
         <div className="flex flex-col md:flex-row items-center gap-12">
-          <div className="flex-1 space-y-6 text-white">
+          <div className="flex-1 space-y-6 text-on-primary">
             <h2 className="text-4xl md:text-5xl font-black">
               You dream it.
               <br />
               I craft it.
             </h2>
-            <p className="text-lg text-white/70 max-w-lg">
+            <p className="text-lg text-on-primary/70 max-w-lg">
               Passionate about building elegant solutions. From web applications to data pipelines,
               I love turning ideas into reality with clean code and modern technologies.
             </p>
             <Link
               href="/calculator"
-              className="inline-flex items-center gap-2 bg-white text-purple-600 px-6 py-3 rounded-full font-semibold hover:bg-white/90 transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 bg-on-primary text-primary px-6 py-3 rounded-full font-semibold hover:bg-on-primary/90 transition-all hover:scale-105"
             >
               <Calculator className="w-5 h-5" />
               Grade Calculator
@@ -216,15 +217,15 @@ function BuilderSection() {
 
           {/* Mini app preview */}
           <div className="flex-shrink-0">
-            <div className="w-64 h-80 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-4 shadow-2xl">
-              <div className="w-full h-full bg-white/5 rounded-2xl flex flex-col items-center justify-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/30 to-white/10 flex items-center justify-center">
-                  <Code className="w-8 h-8 text-white" />
+            <div className="w-64 h-80 bg-on-primary/10 rounded-3xl border border-on-primary/20 p-4 shadow-2xl">
+              <div className="w-full h-full bg-on-primary/5 rounded-2xl flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-on-primary/30 to-on-primary/10 flex items-center justify-center">
+                  <Code className="w-8 h-8 text-on-primary" />
                 </div>
-                <p className="text-white/80 text-sm font-medium">Projects & Apps</p>
+                <p className="text-on-primary/80 text-sm font-medium">Projects & Apps</p>
                 <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-white/70">React</span>
-                  <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-white/70">Next.js</span>
+                  <span className="px-3 py-1 bg-on-primary/10 rounded-full text-xs text-on-primary/70">React</span>
+                  <span className="px-3 py-1 bg-on-primary/10 rounded-full text-xs text-on-primary/70">Next.js</span>
                 </div>
               </div>
             </div>
@@ -248,7 +249,7 @@ function SkillsSection() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-black mb-4">
-            What I <span className="gradient-text-flashy">love</span> doing
+            What I <span className="text-primary">love</span> doing
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
             Exploring the intersection of software engineering and data science
@@ -259,7 +260,7 @@ function SkillsSection() {
           {skills.map((skill, i) => (
             <div
               key={i}
-              className="glass-card-hover rounded-2xl p-8 text-center group"
+              className="bg-surface border border-hairline shadow-raise transition-colors duration-150 hover:border-hairline-strong rounded-2xl p-8 text-center group"
             >
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <skill.icon className="w-8 h-8 text-primary" />
@@ -286,7 +287,7 @@ function ContactSection() {
     <section className="py-24 px-4">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-4xl md:text-5xl font-black mb-4">
-          Let&apos;s <span className="gradient-text-flashy">connect</span>
+          Let&apos;s <span className="text-primary">connect</span>
         </h2>
         <p className="text-muted-foreground mb-12 max-w-lg mx-auto">
           Currently looking for an internship in Data Science.
@@ -300,7 +301,7 @@ function ContactSection() {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="glass-card-hover px-6 py-4 rounded-2xl flex items-center gap-3 group"
+              className="bg-surface border border-hairline shadow-raise transition-colors duration-150 hover:border-hairline-strong px-6 py-4 rounded-2xl flex items-center gap-3 group"
             >
               <link.icon className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
               <span className="font-medium">{link.label}</span>
@@ -333,6 +334,9 @@ export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
       <AnimatedBackground />
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
       <div className="relative z-10">
         <HeroSection />

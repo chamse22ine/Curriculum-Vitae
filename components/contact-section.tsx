@@ -82,13 +82,13 @@ export function ContactSection() {
 
     return (
         <section className="relative py-24 px-4 z-10" ref={ref}>
-            <div className="section-divider mb-24" />
+            <div className="h-px bg-hairline mb-24" />
             <div className="max-w-4xl mx-auto">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-5xl font-bold text-center mb-16 gradient-text font-(family-name:--font-orbitron)"
+                    className="text-4xl md:text-5xl font-bold text-center mb-16 text-primary font-display"
                 >
                     {t.contact.title}
                 </motion.h2>
@@ -97,12 +97,12 @@ export function ContactSection() {
                     initial={{ opacity: 0, y: 50 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.8 }}
-                    className="glass-card rounded-3xl p-8 md:p-12 space-y-8"
+                    className="bg-surface border border-hairline shadow-raise rounded-3xl p-8 md:p-12 space-y-8"
                 >
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <a
                             href="mailto:contact@chams.dev"
-                            className="flex items-center gap-2 px-6 py-3 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 hover:border-indigo-400 transition-all duration-300 text-foreground hover:scale-105"
+                            className="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-sunk hover:bg-surface border border-hairline hover:border-primary transition-all duration-300 text-foreground hover:scale-105"
                         >
                             <Mail className="h-5 w-5 text-primary" />
                             <span>contact@chams.dev</span>

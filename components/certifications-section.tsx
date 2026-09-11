@@ -6,7 +6,7 @@ import { Award } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 
 const dotColors = [
-    "bg-indigo-500",
+    "bg-c1",
     "bg-pink-500",
     "bg-cyan-500",
     "bg-amber-500",
@@ -21,13 +21,13 @@ export function CertificationsSection() {
 
     return (
         <section className="relative py-24 px-4 z-10" ref={ref}>
-            <div className="section-divider mb-24" />
+            <div className="h-px bg-hairline mb-24" />
             <div className="max-w-4xl mx-auto">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-5xl font-bold text-center mb-16 gradient-text-alt font-(family-name:--font-orbitron)"
+                    className="text-4xl md:text-5xl font-bold text-center mb-16 text-primary font-display"
                 >
                     {t.certifications.title}
                 </motion.h2>
@@ -47,7 +47,7 @@ export function CertificationsSection() {
                             >
                                 <div className={`absolute left-[22px] top-1/2 -translate-y-1/2 w-5 h-5 rounded-full ${dotColors[index % dotColors.length]} shadow-lg ring-4 ring-background`} />
 
-                                <div className="glass-card-hover rounded-2xl p-6">
+                                <div className="bg-surface border border-hairline shadow-raise transition-colors duration-150 hover:border-hairline-strong rounded-2xl p-6">
                                     <div className="flex items-start gap-4">
                                         <div className="p-2.5 rounded-xl bg-linear-to-br from-primary/10 to-secondary/10">
                                             <Award className="h-5 w-5 text-primary" />

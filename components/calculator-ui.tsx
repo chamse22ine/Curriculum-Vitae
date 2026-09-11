@@ -77,7 +77,7 @@ function ObjectifRow({ obj }: { obj: Objectif }) {
     const isGlobal = obj.code === "Global"
 
     return (
-        <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl ${isGlobal ? "bg-linear-to-r from-primary/5 to-accent/5 border border-primary/10" : "bg-white/60 border border-slate-100"}`}>
+        <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl ${isGlobal ? "bg-surface-sunk border border-hairline" : "bg-white/60 border border-slate-100"}`}>
             {obj.status === "ok" ? (
                 <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
             ) : obj.status === "impossible" ? (
@@ -166,7 +166,7 @@ export function SimulationCard({ sim }: { sim: Simulation }) {
             : "Pour valider ton année"
 
     return (
-        <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-hairline shadow-raise rounded-2xl overflow-hidden">
             <div className={`px-4 sm:px-5 py-3.5 flex items-center gap-2.5 border-b border-border/50 ${headerColor}`}>
                 <TrendingUp className={`h-4 w-4 shrink-0 ${headerIcon}`} />
                 <h3 className="font-semibold text-sm text-foreground">{headerText}</h3>

@@ -36,7 +36,7 @@ const ETATS: Record<EtatRattrapage, { label: string; className: string }> = {
 }
 
 const RULES = [
-    { icon: CheckCircle, color: "text-indigo-500", bg: "bg-indigo-50/60", border: "border-indigo-100", text: <>Année validée si <strong className="text-indigo-600">tous les niveaux ≥ 10/20</strong>, ou moyenne <strong className="text-indigo-600">≥ 10/20</strong> avec chaque niveau <strong className="text-indigo-600">≥ 8/20</strong></> },
+    { icon: CheckCircle, color: "text-primary", bg: "bg-surface-sunk", border: "border-hairline", text: <>Année validée si <strong className="text-primary">tous les niveaux ≥ 10/20</strong>, ou moyenne <strong className="text-primary">≥ 10/20</strong> avec chaque niveau <strong className="text-primary">≥ 8/20</strong></> },
     { icon: Scale, color: "text-blue-500", bg: "bg-blue-50/60", border: "border-blue-100", text: <>Les EC se compensent dans l&apos;UE, les UE dans le niveau : acquis dès <strong className="text-blue-600">10/20</strong> de moyenne pondérée par les ECTS. Valider un niveau ou l&apos;année <strong className="text-blue-600">valide tout ce qui le compose</strong></> },
     { icon: RotateCcw, color: "text-violet-500", bg: "bg-violet-50/60", border: "border-violet-100", text: <>Session 2 : rattrapage des <strong className="text-violet-600">EC &lt; 10/20</strong> des UE non validées. <strong className="text-violet-600">SAÉ et stage</strong> : pas de rattrapage</> },
     { icon: History, color: "text-sky-500", bg: "bg-sky-50/60", border: "border-sky-100", text: <>EC entre <strong className="text-sky-600">8 et 10/20</strong> : note de session 1 conservable en émargeant « Demande de report »</> },
@@ -259,10 +259,10 @@ function YearOverview({ session, notes, resultat, action }: { session: 1 | 2; no
 
     return (
         <>
-            <div className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="bg-surface border border-hairline shadow-raise rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                        <span className="text-white font-bold text-lg">M1</span>
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                        <span className="text-on-primary font-bold text-lg">M1</span>
                     </div>
                     <div>
                         <div className="flex items-center gap-3">
@@ -399,8 +399,8 @@ function Session2Tab({ state, notes1, resultat1, notes2, resultat2, onSaisie, on
 
 function RulesTab() {
     return (
-        <div className="glass-card rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 bg-linear-to-r from-primary/5 to-accent/5 border-b border-border/50">
+        <div className="bg-surface border border-hairline shadow-raise rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 bg-surface-sunk border-b border-border/50">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                     <Info className="h-4 w-4 text-primary" />
                     Règles de validation — M3C 2026-2027
@@ -466,12 +466,12 @@ export default function MasterCalculator() {
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-6">
             <Tabs value={tab} onValueChange={setTab} className="w-full">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <TabsList className="glass-card p-1 h-auto inline-flex w-auto">
+                    <TabsList className="bg-surface border border-hairline shadow-raise p-1 h-auto inline-flex w-auto">
                         {TABS.map((tab) => (
                             <TabsTrigger
                                 key={tab.value}
                                 value={tab.value}
-                                className="text-sm px-5 py-2 data-[state=active]:bg-linear-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-300"
+                                className="text-sm px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-on-primary data-[state=active]:shadow-md rounded-lg transition-all duration-300"
                             >
                                 {tab.label}
                             </TabsTrigger>
