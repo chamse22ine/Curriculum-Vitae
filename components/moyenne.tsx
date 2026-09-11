@@ -2,12 +2,13 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { CheckCircle, Trash2, AlertTriangle, BookOpen, Award, Info, Save } from "lucide-react"
 import { MoyenneIndicator, SimulationCard, ValidationStatus, usePersistedState } from "@/components/calculator-ui"
+import { UeCard } from "@/components/calculator/ue-card"
+import { licenceCards, positionDeLigne } from "@/components/calculator/licence-cards"
 import { createInitialData } from "@/constants/curriculum-data"
-import type { Annee, Competence } from "@/types/curriculum.types"
-import { moyenneUE, moyenneCompetence, moyenneSemestre, moyenneAnnee, analyserValidation, simulerObjectifs, UE_NAMES } from "@/lib/calculs"
+import type { Annee } from "@/types/curriculum.types"
+import { moyenneSemestre, moyenneAnnee, analyserValidation, simulerObjectifs, UE_NAMES } from "@/lib/calculs"
 
 // --- Constants ---
 
@@ -25,53 +26,6 @@ const UE_DOTS: Record<string, string> = { UE1: "bg-blue-400", UE2: "bg-emerald-4
 const UE_LEGEND = Object.entries(UE_NAMES).map(([code, label]) => ({ code, label, dot: UE_DOTS[code] }))
 
 // --- Section components ---
-
-function CompetenceCard({ competence, onNoteChange }: {
-    competence: Competence
-    onNoteChange: (ueIdx: number, ecIdx: number, note: number) => void
-}) {
-    return (
-        <div className={`rounded-xl border overflow-hidden ${competence.color} transition-shadow duration-300 hover:shadow-md`}>
-            <div className={`px-4 py-3 ${competence.bgGradient}`}>
-                <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                        <span className="text-xs font-bold tracking-wide">{competence.code}</span>
-                        <p className="text-[11px] opacity-70 truncate">{competence.name}</p>
-                    </div>
-                    <MoyenneIndicator value={moyenneCompetence(competence)} size="sm" />
-                </div>
-            </div>
-            <div className="p-3 space-y-3">
-                {competence.ues.map((ue, ueIdx) => (
-                    <div key={ue.code} className="space-y-1.5">
-                        {competence.ues.length > 1 && (
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[11px] font-semibold text-foreground/60">{ue.name}</span>
-                                <MoyenneIndicator value={moyenneUE(ue)} size="sm" />
-                            </div>
-                        )}
-                        {ue.elements.map((ec, ecIdx) => (
-                            <div key={ec.name} className="flex items-center gap-2 bg-white/80 rounded-lg px-3 py-2 border border-white">
-                                <span className="text-xs text-foreground/70 flex-1 min-w-0 truncate">{ec.name}</span>
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">{ec.ects} ECTS</span>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    max="20"
-                                    step="0.1"
-                                    value={ec.note || ""}
-                                    onChange={(e) => onNoteChange(ueIdx, ecIdx, Number.parseFloat(e.target.value) || 0)}
-                                    className="w-[70px] h-8 text-center text-sm font-medium text-foreground bg-white border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg shadow-sm"
-                                    placeholder="—"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
 
 function YearOverview({ annee }: { annee: Annee }) {
     const { validated, mention, raisons, competencesAnnuelles } = analyserValidation(annee)
@@ -192,10 +146,15 @@ function ResumeTab({ data }: { data: Annee[] }) {
 export default function LCeRCalculator() {
     const [data, setData] = usePersistedState(STORAGE_KEY, createInitialData)
 
-    const updateNote = (anneeIdx: number, semIdx: number, compIdx: number, ueIdx: number, ecIdx: number, note: number) => {
-        const next = [...data]
-        next[anneeIdx].semestres[semIdx].competences[compIdx].ues[ueIdx].elements[ecIdx].note = note
-        setData(next)
+    const setNote = (id: string, value: number | null) => {
+        const [a, s, c, u, e] = positionDeLigne(id)
+        setData((prev) => {
+            const next = structuredClone(prev)
+            const ec = next[a].semestres[s].competences[c].ues[u].elements[e]
+            if (value == null) delete ec.note
+            else ec.note = value
+            return next
+        })
     }
 
     const resetData = () => {
@@ -225,33 +184,32 @@ export default function LCeRCalculator() {
                     </Button>
                 </div>
 
-                {data.map((annee, anneeIdx) => (
-                    <TabsContent key={annee.numero} value={`annee${annee.numero}`} className="space-y-6">
-                        <YearOverview annee={annee} />
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            {annee.semestres.map((semestre, semIdx) => (
-                                <div key={semestre.numero} className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <BookOpen className="h-4 w-4 text-primary" />
-                                            <h3 className="font-semibold text-foreground">Semestre {semestre.numero}</h3>
+                {data.map((annee, anneeIdx) => {
+                    const dense = annee.semestres.reduce((n, s) => n + s.competences.length, 0) > 8
+                    return (
+                        <TabsContent key={annee.numero} value={`annee${annee.numero}`} className="space-y-6">
+                            <YearOverview annee={annee} />
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {annee.semestres.map((semestre, semIdx) => (
+                                    <div key={semestre.numero} className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <BookOpen className="h-4 w-4 text-primary" />
+                                                <h3 className="font-semibold text-foreground">Semestre {semestre.numero}</h3>
+                                            </div>
+                                            <MoyenneIndicator value={moyenneSemestre(semestre)} size="md" />
                                         </div>
-                                        <MoyenneIndicator value={moyenneSemestre(semestre)} size="md" />
+                                        <div className="space-y-3">
+                                            {licenceCards(annee, anneeIdx, semIdx).map((card) => (
+                                                <UeCard key={card.code} {...card} dense={dense} onNoteChange={setNote} />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="space-y-3">
-                                        {semestre.competences.map((comp, compIdx) => (
-                                            <CompetenceCard
-                                                key={comp.code}
-                                                competence={comp}
-                                                onNoteChange={(ueIdx, ecIdx, note) => updateNote(anneeIdx, semIdx, compIdx, ueIdx, ecIdx, note)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </TabsContent>
-                ))}
+                                ))}
+                            </div>
+                        </TabsContent>
+                    )
+                })}
 
                 <TabsContent value="resume">
                     <ResumeTab data={data} />

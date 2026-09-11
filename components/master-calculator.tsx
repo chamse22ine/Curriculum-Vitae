@@ -3,12 +3,13 @@
 import { useState, type ReactNode } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { AlertTriangle, ArrowRight, Award, BookOpen, CheckCircle, GraduationCap, History, Info, RotateCcw, Save, Scale, Trash2 } from "lucide-react"
 import { MoyenneIndicator, SimulationCard, ValidationStatus, usePersistedState } from "@/components/calculator-ui"
+import { UeCard } from "@/components/calculator/ue-card"
+import { champDeLigne, masterCards, type MasterContexte } from "@/components/calculator/master-cards"
 import { M1, NIVEAUX } from "@/constants/master-data"
-import { analyserMaster, champsASaisir, etatRattrapage, moyenneMaster, notesSession1, notesSession2, peutReporter, simulerMaster, type EtatRattrapage, type Notes, type ResultatMaster, type Statut } from "@/lib/calculs-master"
-import type { Champ, MasterEC, MasterState, MasterUE, NiveauCode } from "@/types/master.types"
+import { analyserMaster, moyenneMaster, notesSession1, notesSession2, simulerMaster, type Notes, type ResultatMaster, type Statut } from "@/lib/calculs-master"
+import type { MasterState, NiveauCode } from "@/types/master.types"
 
 // --- Constants ---
 
@@ -20,19 +21,10 @@ const TABS = [
     { value: "regles", label: "Règles" },
 ]
 
-const CHAMP_LABELS: Record<Champ, string> = { CC: "CC", EX1: "EX1", EX2: "EX2", ORAL: "Oral", STG1: "STG1" }
-
 const STATUTS: Record<Statut, { label: string; className: string }> = {
     acquis: { label: "Acquis", className: "text-emerald-600 bg-emerald-50 border-emerald-200" },
     compense: { label: "Compensé", className: "text-blue-600 bg-blue-50 border-blue-200" },
     "non-acquis": { label: "Non acquis", className: "text-red-500 bg-red-50 border-red-200" },
-}
-
-const ETATS: Record<EtatRattrapage, { label: string; className: string }> = {
-    acquis: { label: "Acquis en S1", className: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-    rattrapage: { label: "À rattraper", className: "text-amber-600 bg-amber-50 border-amber-200" },
-    "sans-rattrapage": { label: "Pas de rattrapage", className: "text-slate-500 bg-slate-50 border-slate-200" },
-    "en-attente": { label: "Note S1 manquante", className: "text-sky-600 bg-sky-50 border-sky-200" },
 }
 
 const RULES = [
@@ -48,13 +40,8 @@ const RULES = [
 
 const createInitialState = (): MasterState => ({ saisies: {}, reports: {} })
 
-type SetSaisie = (id: string, champ: Champ, valeur: number | undefined) => void
-type SetReport = (id: string, reporte: boolean) => void
-
-function parseNote(raw: string): number | undefined {
-    const note = Number.parseFloat(raw)
-    return Number.isNaN(note) ? undefined : Math.min(20, Math.max(0, note))
-}
+type SetNote = (id: string, value: number | null) => void
+type SetReport = (id: string, checked: boolean) => void
 
 // --- Small UI components ---
 
@@ -62,40 +49,6 @@ function StatutBadge({ statut, moyenne }: { statut: Statut; moyenne: number | nu
     if (moyenne == null) return null
     const { label, className } = STATUTS[statut]
     return <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 border whitespace-nowrap ${className}`}>{label}</span>
-}
-
-function NoteInput({ label, value, disabled, onChange }: {
-    label: string
-    value?: number
-    disabled?: boolean
-    onChange: (value: number | undefined) => void
-}) {
-    return (
-        <label className="flex flex-col items-center gap-0.5">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-            <Input
-                type="number"
-                min="0"
-                max="20"
-                step="0.1"
-                value={value ?? ""}
-                disabled={disabled}
-                onChange={(e) => onChange(parseNote(e.target.value))}
-                className="w-15.5 h-8 text-center text-sm font-medium text-foreground bg-white border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg shadow-sm"
-                placeholder="—"
-            />
-        </label>
-    )
-}
-
-function ECHeader({ ec }: { ec: MasterEC }) {
-    return (
-        <div className="flex items-center gap-2">
-            <span className="text-xs text-foreground/70 flex-1 min-w-0 truncate">{ec.code} - {ec.name}</span>
-            {ec.sae && <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/50 bg-slate-100 rounded px-1.5 py-0.5">SAÉ</span>}
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">{ec.ects} ECTS</span>
-        </div>
-    )
 }
 
 function SemestreHeader({ numero, moyenne }: { numero: number; moyenne?: number | null }) {
@@ -111,120 +64,6 @@ function SemestreHeader({ numero, moyenne }: { numero: number; moyenne?: number 
 }
 
 // --- Section components ---
-
-function UECard({ ue, resultat, children }: { ue: MasterUE; resultat: ResultatMaster; children: ReactNode }) {
-    const niveau = NIVEAUX[ue.niveau]
-    const { moyenne, statut } = resultat.ues.get(ue)!
-
-    return (
-        <div className={`rounded-xl border overflow-hidden ${niveau.color} transition-shadow duration-300 hover:shadow-md`}>
-            <div className={`px-4 py-3 ${niveau.bgGradient}`}>
-                <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                        <span className="text-xs font-bold tracking-wide">{ue.code}</span>
-                        <span className="text-[10px] opacity-60 ml-1.5">{ue.ects} ECTS</span>
-                        <p className="text-[11px] opacity-70 truncate">{ue.niveau} · {niveau.name}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        <StatutBadge statut={statut} moyenne={moyenne} />
-                        <MoyenneIndicator value={moyenne} size="sm" />
-                    </div>
-                </div>
-            </div>
-            <div className="p-3 space-y-1.5">{children}</div>
-        </div>
-    )
-}
-
-function ECRow({ ec, note, state, onSaisie }: { ec: MasterEC; note: number | null; state: MasterState; onSaisie: SetSaisie }) {
-    return (
-        <div className="bg-white/80 rounded-lg px-3 py-2 border border-white space-y-1.5">
-            <ECHeader ec={ec} />
-            <div className="flex items-end gap-2">
-                <code className="flex-1 min-w-0 text-[10px] text-muted-foreground truncate pb-2" title={ec.session1.texte}>{ec.session1.texte}</code>
-                {champsASaisir(ec.session1).map((champ) => (
-                    <NoteInput
-                        key={champ}
-                        label={CHAMP_LABELS[champ]}
-                        value={state.saisies[ec.id]?.[champ]}
-                        onChange={(valeur) => onSaisie(ec.id, champ, valeur)}
-                    />
-                ))}
-                <div className="pb-1">
-                    <MoyenneIndicator value={note} size="sm" />
-                </div>
-            </div>
-        </div>
-    )
-}
-
-function Session2Row({ ec, etat, note1, note2, state, onSaisie, onReport }: {
-    ec: MasterEC
-    etat: EtatRattrapage
-    note1: number | null
-    note2: number | null
-    state: MasterState
-    onSaisie: SetSaisie
-    onReport: SetReport
-}) {
-    // SAÉ et stage : pas de seconde session, la note saisie vaut pour les deux sessions
-    const formule = ec.session2 ?? ec.session1
-    let champs: Champ[] = []
-    if (!ec.session2) champs = champsASaisir(ec.session1)
-    else if (etat !== "acquis") champs = champsASaisir(ec.session2, ec.session1.variables)
-
-    const reporte = etat === "rattrapage" && !!state.reports[ec.id]
-    const reportable = peutReporter(note1)
-
-    return (
-        <div className="bg-white/80 rounded-lg px-3 py-2 border border-white space-y-1.5">
-            <ECHeader ec={ec} />
-            <div className="flex items-end gap-2">
-                <div className="flex-1 min-w-0 flex flex-col items-start gap-1 pb-1.5">
-                    <span className={`text-[9px] font-semibold rounded px-1.5 py-0.5 border whitespace-nowrap ${ETATS[etat].className}`}>
-                        {ETATS[etat].label}
-                    </span>
-                    <code className="max-w-full text-[10px] text-muted-foreground truncate" title={formule.texte}>
-                        {etat === "acquis" && ec.session2 ? "Note de session 1 conservée" : formule.texte}
-                    </code>
-                </div>
-                {ec.session2 && (
-                    <span className="pb-2 text-[10px] text-muted-foreground whitespace-nowrap">
-                        S1 <span className="tabular-nums font-medium text-foreground/70">{note1 != null ? note1.toFixed(2) : "—"}</span>
-                    </span>
-                )}
-                {champs.map((champ) => (
-                    <NoteInput
-                        key={champ}
-                        label={CHAMP_LABELS[champ]}
-                        value={state.saisies[ec.id]?.[champ]}
-                        disabled={reporte}
-                        onChange={(valeur) => onSaisie(ec.id, champ, valeur)}
-                    />
-                ))}
-                <div className="pb-1">
-                    <MoyenneIndicator value={note2} size="sm" />
-                </div>
-            </div>
-            {etat === "rattrapage" && (
-                <label className={`flex items-center gap-2 text-[10px] ${reportable || reporte ? "text-foreground/70 cursor-pointer" : "text-muted-foreground/60"}`}>
-                    <input
-                        type="checkbox"
-                        checked={reporte}
-                        disabled={!reportable && !reporte}
-                        onChange={(e) => onReport(ec.id, e.target.checked)}
-                        className="h-3.5 w-3.5 accent-primary"
-                    />
-                    {reportable
-                        ? "Reporter la note de session 1"
-                        : reporte
-                            ? "Report hors de 8–10/20 : compté absent (0/20)"
-                            : "Report possible uniquement entre 8 et 10/20"}
-                </label>
-            )}
-        </div>
-    )
-}
 
 function NiveauxGrid({ resultat }: { resultat: ResultatMaster }) {
     return (
@@ -293,14 +132,28 @@ function YearOverview({ session, notes, resultat, action }: { session: 1 | 2; no
     )
 }
 
-function Session1Tab({ state, notes, resultat, onSaisie, onSession2 }: {
-    state: MasterState
-    notes: Notes
-    resultat: ResultatMaster
-    onSaisie: SetSaisie
-    onSession2: () => void
-}) {
-    const action = resultat.moyenne != null && !resultat.validee && (
+function SemestresCards({ session, ctx, onNote, onReport }: { session: 1 | 2; ctx: MasterContexte; onNote: SetNote; onReport: SetReport }) {
+    const notes = session === 1 ? ctx.notes1 : ctx.notes2
+
+    return (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {M1.map((semestre) => (
+                <div key={semestre.numero} className="space-y-4">
+                    <SemestreHeader numero={semestre.numero} moyenne={moyenneMaster(semestre.ues.flatMap((ue) => ue.elements), notes)} />
+                    <div className="space-y-3">
+                        {masterCards(semestre, session, ctx).map((card) => (
+                            <UeCard key={card.code} {...card} onNoteChange={onNote} onReportChange={onReport} />
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function Session1Tab({ ctx, onNote, onReport, onSession2 }: { ctx: MasterContexte; onNote: SetNote; onReport: SetReport; onSession2: () => void }) {
+    const { notes1, resultat1 } = ctx
+    const action = resultat1.moyenne != null && !resultat1.validee && (
         <Button variant="outline" size="sm" onClick={onSession2} className="gap-1.5">
             Simuler la session 2
             <ArrowRight className="h-4 w-4" />
@@ -309,37 +162,15 @@ function Session1Tab({ state, notes, resultat, onSaisie, onSession2 }: {
 
     return (
         <div className="space-y-6">
-            <YearOverview session={1} notes={notes} resultat={resultat} action={action} />
-            <NiveauxGrid resultat={resultat} />
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {M1.map((semestre) => (
-                    <div key={semestre.numero} className="space-y-4">
-                        <SemestreHeader numero={semestre.numero} moyenne={moyenneMaster(semestre.ues.flatMap((ue) => ue.elements), notes)} />
-                        <div className="space-y-3">
-                            {semestre.ues.map((ue) => (
-                                <UECard key={ue.code} ue={ue} resultat={resultat}>
-                                    {ue.elements.map((ec) => (
-                                        <ECRow key={ec.id} ec={ec} note={notes.get(ec) ?? null} state={state} onSaisie={onSaisie} />
-                                    ))}
-                                </UECard>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <YearOverview session={1} notes={notes1} resultat={resultat1} action={action} />
+            <NiveauxGrid resultat={resultat1} />
+            <SemestresCards session={1} ctx={ctx} onNote={onNote} onReport={onReport} />
         </div>
     )
 }
 
-function Session2Tab({ state, notes1, resultat1, notes2, resultat2, onSaisie, onReport }: {
-    state: MasterState
-    notes1: Notes
-    resultat1: ResultatMaster
-    notes2: Notes
-    resultat2: ResultatMaster
-    onSaisie: SetSaisie
-    onReport: SetReport
-}) {
+function Session2Tab({ ctx, onNote, onReport }: { ctx: MasterContexte; onNote: SetNote; onReport: SetReport }) {
+    const { resultat1, notes2, resultat2 } = ctx
     const reussite = resultat2.moyenne ?? 0
 
     return (
@@ -368,31 +199,7 @@ function Session2Tab({ state, notes1, resultat1, notes2, resultat2, onSaisie, on
                 </div>
             )}
             <NiveauxGrid resultat={resultat2} />
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {M1.map((semestre) => (
-                    <div key={semestre.numero} className="space-y-4">
-                        <SemestreHeader numero={semestre.numero} moyenne={moyenneMaster(semestre.ues.flatMap((ue) => ue.elements), notes2)} />
-                        <div className="space-y-3">
-                            {semestre.ues.map((ue) => (
-                                <UECard key={ue.code} ue={ue} resultat={resultat2}>
-                                    {ue.elements.map((ec) => (
-                                        <Session2Row
-                                            key={ec.id}
-                                            ec={ec}
-                                            etat={etatRattrapage(ec, ue, resultat1, notes1)}
-                                            note1={notes1.get(ec) ?? null}
-                                            note2={notes2.get(ec) ?? null}
-                                            state={state}
-                                            onSaisie={onSaisie}
-                                            onReport={onReport}
-                                        />
-                                    ))}
-                                </UECard>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <SemestresCards session={2} ctx={ctx} onNote={onNote} onReport={onReport} />
         </div>
     )
 }
@@ -445,16 +252,22 @@ export default function MasterCalculator() {
     const resultat1 = analyserMaster(notes1)
     const notes2 = notesSession2(state, notes1, resultat1)
     const resultat2 = analyserMaster(notes2)
+    const ctx: MasterContexte = { state, notes1, resultat1, notes2, resultat2 }
 
-    const setSaisie: SetSaisie = (id, champ, valeur) => setState((prev) => ({
-        ...prev,
-        saisies: { ...prev.saisies, [id]: { ...prev.saisies[id], [champ]: valeur } },
-    }))
+    const setNote: SetNote = (id, value) => {
+        const { ecId, champ } = champDeLigne(id)
+        setState((prev) => {
+            const saisie = { ...prev.saisies[ecId] }
+            if (value == null) delete saisie[champ]
+            else saisie[champ] = value
+            return { ...prev, saisies: { ...prev.saisies, [ecId]: saisie } }
+        })
+    }
 
-    const setReport: SetReport = (id, reporte) => setState((prev) => ({
-        ...prev,
-        reports: { ...prev.reports, [id]: reporte },
-    }))
+    const setReport: SetReport = (id, checked) => {
+        const { ecId } = champDeLigne(id)
+        setState((prev) => ({ ...prev, reports: { ...prev.reports, [ecId]: checked } }))
+    }
 
     const resetData = () => {
         if (confirm("Êtes-vous sûr de vouloir effacer toutes les données ?")) {
@@ -484,18 +297,10 @@ export default function MasterCalculator() {
                 </div>
 
                 <TabsContent value="session1">
-                    <Session1Tab state={state} notes={notes1} resultat={resultat1} onSaisie={setSaisie} onSession2={() => setTab("session2")} />
+                    <Session1Tab ctx={ctx} onNote={setNote} onReport={setReport} onSession2={() => setTab("session2")} />
                 </TabsContent>
                 <TabsContent value="session2">
-                    <Session2Tab
-                        state={state}
-                        notes1={notes1}
-                        resultat1={resultat1}
-                        notes2={notes2}
-                        resultat2={resultat2}
-                        onSaisie={setSaisie}
-                        onReport={setReport}
-                    />
+                    <Session2Tab ctx={ctx} onNote={setNote} onReport={setReport} />
                 </TabsContent>
                 <TabsContent value="regles">
                     <RulesTab />
