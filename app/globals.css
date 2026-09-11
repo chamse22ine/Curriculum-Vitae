@@ -101,7 +101,8 @@ html {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(99, 102, 241, 0.15);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08),
+    box-shadow:
+      0 8px 32px rgba(99, 102, 241, 0.08),
       0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
@@ -109,7 +110,8 @@ html {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(99, 102, 241, 0.15);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08),
+    box-shadow:
+      0 8px 32px rgba(99, 102, 241, 0.08),
       0 2px 8px rgba(0, 0, 0, 0.04);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -117,7 +119,8 @@ html {
   .glass-card-hover:hover {
     background: rgba(255, 255, 255, 0.85);
     border-color: rgba(99, 102, 241, 0.3);
-    box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15),
+    box-shadow:
+      0 20px 60px rgba(99, 102, 241, 0.15),
       0 4px 16px rgba(0, 0, 0, 0.06);
     transform: translateY(-4px);
   }
@@ -143,20 +146,46 @@ html {
     background-clip: text;
   }
 
+  .gradient-text-flashy {
+    background: linear-gradient(176deg, #f289a4, #fa5bd7, #9336ea, #5731ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-flashy-inv {
+    background: linear-gradient(-4deg, #5731ee, #9336ea, #fa5bd7, #f289a4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow:
+      0 4px 20px rgba(99, 102, 241, 0.1),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
   .soft-glow {
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.15),
+    box-shadow:
+      0 0 40px rgba(99, 102, 241, 0.15),
       0 0 80px rgba(236, 72, 153, 0.08);
   }
 
   .soft-glow-hover:hover {
-    box-shadow: 0 0 60px rgba(99, 102, 241, 0.25),
+    box-shadow:
+      0 0 60px rgba(99, 102, 241, 0.25),
       0 0 120px rgba(236, 72, 153, 0.12);
   }
 }
 
 /* Animated gradient mesh background */
 @keyframes gradient-shift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -165,7 +194,8 @@ html {
 }
 
 @keyframes float-slow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
   33% {
@@ -177,7 +207,8 @@ html {
 }
 
 @keyframes blob {
-  0%, 100% {
+  0%,
+  100% {
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   }
   25% {
@@ -199,10 +230,51 @@ html {
   animation: float-slow 6s ease-in-out infinite;
 }
 
+@keyframes float-pill {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) translateX(4px) rotate(1deg);
+  }
+  50% {
+    transform: translateY(-4px) translateX(-2px) rotate(-0.5deg);
+  }
+  75% {
+    transform: translateY(-12px) translateX(2px) rotate(0.5deg);
+  }
+}
+
+.animate-float-pill {
+  animation: float-pill 6s ease-in-out infinite;
+}
+
+.animate-float-pill-delayed {
+  animation: float-pill 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.animate-float-pill-slow {
+  animation: float-pill 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-float-pill-delayed-slow {
+  animation: float-pill 7s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
 /* Section divider gradient */
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), rgba(236, 72, 153, 0.3), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.3),
+    rgba(236, 72, 153, 0.3),
+    transparent
+  );
 }
 
 /* Custom scrollbar */
