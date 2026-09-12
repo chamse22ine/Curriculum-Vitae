@@ -1,4 +1,5 @@
 import type React from "react"
+import { MeasureGrid } from "@/components/measure-grid"
 import { SiteHeader } from "@/components/site/site-header"
 
 export default function SiteLayout({
@@ -8,6 +9,8 @@ export default function SiteLayout({
 }>) {
   return (
     <div lang="en" className="relative min-h-dvh">
+      {/* Monté une seule fois, ici : ni le calculateur ni l'écran de choix n'ont de fond animé */}
+      <MeasureGrid />
       <SiteHeader />
       {children}
       <footer className="border-t border-hairline">
