@@ -13,7 +13,7 @@ export type MasterContexte = {
     resultat2: ResultatMaster
 }
 
-const BLOC: Record<NiveauCode, Bloc> = { C1: "c1", C2: "c2", C3: "c3", C4: "c4" }
+export const BLOC_NIVEAU: Record<NiveauCode, Bloc> = { C1: "c1", C2: "c2", C3: "c3", C4: "c4" }
 const CHAMP_LABEL: Record<Champ, string> = { CC: "CC", EX1: "EX1", EX2: "EX2", ORAL: "Oral", STG1: "STG1" }
 
 /** Identifiant de ligne « UE1.1:GP:CC » : unique même pour le stage, présent dans quatre UE */
@@ -104,7 +104,7 @@ export function masterCards(semestre: MasterSemestre, session: 1 | 2, ctx: Maste
         if (!cible && statut === "non-acquis") cible = session === 1 ? "EC sous 10 au rattrapage" : "UE non acquise après rattrapage"
 
         return {
-            bloc: BLOC[ue.niveau],
+            bloc: BLOC_NIVEAU[ue.niveau],
             code: ue.code,
             titre: NIVEAUX[ue.niveau].name,
             moyenne,

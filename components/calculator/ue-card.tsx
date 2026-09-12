@@ -37,7 +37,7 @@ const BLOC_LINE: Record<Bloc, string> = {
     c1: "border-l-c1", c2: "border-l-c2", c3: "border-l-c3",
     c4: "border-l-c4", c5: "border-l-c5",
 }
-const BLOC_TEXT: Record<Bloc, string> = {
+export const BLOC_TEXT: Record<Bloc, string> = {
     c1: "text-c1", c2: "text-c2", c3: "text-c3", c4: "text-c4", c5: "text-c5",
 }
 export const STATUT: Record<Statut, { glyph: string; label: string; cls: string }> = {
@@ -48,9 +48,9 @@ export const STATUT: Record<Statut, { glyph: string; label: string; cls: string 
 }
 
 /** Les quatre libellés sont empilés : le fondu croisé ne change jamais la largeur de la ligne */
-export function StatutLabel({ statut }: { statut: Statut }) {
+export function StatutLabel({ statut, align = "end" }: { statut: Statut; align?: "start" | "end" }) {
     return (
-        <span className="inline-grid justify-items-end align-bottom">
+        <span className={cn("inline-grid align-bottom", align === "end" ? "justify-items-end" : "justify-items-start")}>
             {(Object.keys(STATUT) as Statut[]).map((cle) => (
                 <span
                     key={cle}
