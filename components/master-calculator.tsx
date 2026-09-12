@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { AlertTriangle, ArrowRight, Award, CheckCircle, Eraser, GraduationCap, History, Keyboard, RotateCcw, Scale, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePersistedState } from "@/components/calculator-ui"
 import { BlocsResume, type BlocResume } from "@/components/calculator/blocs-resume"
 import { CalculatorShell, useNavigationBords, type NavGroupe } from "@/components/calculator/calculator-shell"
 import { BLOC_NIVEAU, champDeLigne, masterCards, type MasterContexte } from "@/components/calculator/master-cards"
+import { EntreeCartes, useTransitionCle } from "@/components/calculator/motion"
 import { RulesList, type Regle } from "@/components/calculator/rules-list"
 import { UeCard } from "@/components/calculator/ue-card"
 import { useHistory, useUndoShortcut } from "@/components/calculator/use-history"
@@ -44,6 +45,8 @@ export default function MasterCalculator() {
     const [generation, setGeneration] = useState(0)
     useUndoShortcut(undo)
     const onEdge = useNavigationBords(SEMESTRES, vue, setVue)
+    const zoneSession = useRef<HTMLDivElement>(null)
+    useTransitionCle(zoneSession, session)
 
     const notes1 = notesSession1(state.saisies)
     const resultat1 = analyserMaster(notes1)
@@ -160,7 +163,7 @@ export default function MasterCalculator() {
     return (
         <CalculatorShell groupes={groupes} courant={vue} onSelect={setVue} barre={barre} verdict={masterVerdict(session, ctx)} action={action}>
             {semestre ? (
-                <div className="space-y-4">
+                <div ref={zoneSession} className="space-y-4">
                     <div className="flex items-baseline justify-between gap-3">
                         <h2 className="font-display text-h3 text-ink">
                             Semestre {semestre.numero} <span className="num text-caption text-ink-muted">· session {session}</span>
@@ -173,9 +176,11 @@ export default function MasterCalculator() {
                             Année validée dès la session 1 : aucune note à rattraper.
                         </p>
                     )}
-                    {masterCards(semestre, session, ctx).map((card) => (
-                        <UeCard key={`${generation}-${card.code}`} {...card} onNoteChange={setNote} onReportChange={setReport} onEdge={onEdge} />
-                    ))}
+                    <EntreeCartes key={vue} className="space-y-4">
+                        {masterCards(semestre, session, ctx).map((card) => (
+                            <UeCard key={`${generation}-${card.code}`} {...card} onNoteChange={setNote} onReportChange={setReport} onEdge={onEdge} />
+                        ))}
+                    </EntreeCartes>
                 </div>
             ) : (
                 <RulesList

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowRight, ArrowUpRight, Brain, Code, Database, Gamepad2, Globe, Mail, Plane, School, Trophy, type LucideIcon } from "lucide-react"
 import { Github, Linkedin } from "@/components/brand-icons"
+import { RevealLines } from "@/components/site/reveal-lines"
 import { translations } from "@/lib/translations"
 
 const SKILLS = [
@@ -42,9 +43,13 @@ function Hero() {
     <section className="mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24">
       <p className="num text-caption uppercase tracking-[0.14em] text-ink-muted">Computer science student · Lille, France</p>
       <h1 className="mt-6 font-display text-[2.5rem] leading-[1.05] text-ink sm:text-h1 lg:text-display">
-        <span className="block pb-[0.08em]">Hey, I&apos;m Chams.</span>
-        <span className="block pb-[0.08em]">I build apps,</span>
-        <span className="block pb-[0.08em] italic text-primary">augmented with AI.</span>
+        <RevealLines
+          lines={[
+            { text: "Hey, I'm Chams." },
+            { text: "I build apps," },
+            { text: "augmented with AI.", className: "italic text-primary" },
+          ]}
+        />
       </h1>
       <p className="mt-6 max-w-xl text-lead text-ink-soft">
         A web &amp; mobile computer science student. From web applications to data pipelines, I turn ideas into reality with

@@ -7,6 +7,7 @@ import { usePersistedState } from "@/components/calculator-ui"
 import { BlocsResume, type BlocResume } from "@/components/calculator/blocs-resume"
 import { CalculatorShell, useNavigationBords, type NavGroupe } from "@/components/calculator/calculator-shell"
 import { licenceCards, positionDeLigne } from "@/components/calculator/licence-cards"
+import { EntreeCartes } from "@/components/calculator/motion"
 import { RulesList, type Regle } from "@/components/calculator/rules-list"
 import { UeCard, type Bloc, type Statut } from "@/components/calculator/ue-card"
 import { useHistory, useUndoShortcut } from "@/components/calculator/use-history"
@@ -166,9 +167,11 @@ export default function LCeRCalculator() {
                     <p className="num text-ui text-ink-muted">{fmt2(moyenneSemestreLicence(semestre))}</p>
                 </div>
                 <BlocsResume titre="Compétences sur l'année" blocs={blocsLicence(annee)} />
-                {licenceCards(annee, a, s).map((card) => (
-                    <UeCard key={`${generation}-${card.code}`} {...card} dense={dense} onNoteChange={setNote} onEdge={onEdge} />
-                ))}
+                <EntreeCartes key={vue} className="space-y-4">
+                    {licenceCards(annee, a, s).map((card) => (
+                        <UeCard key={`${generation}-${card.code}`} {...card} dense={dense} onNoteChange={setNote} onEdge={onEdge} />
+                    ))}
+                </EntreeCartes>
             </div>
         )
     } else if (vue === "resume") {
