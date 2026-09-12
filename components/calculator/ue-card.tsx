@@ -88,7 +88,7 @@ export function UeCard({
                 BLOC_LINE[bloc]
             )}
         >
-            <header className="flex items-center justify-between gap-3 border-b border-hairline/70 bg-paper/60 px-4 py-3">
+            <header className="flex items-center justify-between gap-3 border-b border-hairline/70 bg-paper/60 px-3 py-3 sm:px-4">
                 <div className="min-w-0">
                     <p className={cn("font-mono text-caption font-semibold uppercase", BLOC_TEXT[bloc])}>
                         {bloc.toUpperCase()} · {code}
@@ -108,12 +108,12 @@ export function UeCard({
                     <li
                         key={n.id}
                         className={cn(
-                            "grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem] items-center gap-3 px-4",
+                            "grid grid-cols-[minmax(0,1fr)_2.25rem_4.75rem] items-center gap-2 px-3 sm:grid-cols-[minmax(0,1fr)_3.5rem_5.5rem] sm:gap-3 sm:px-4",
                             dense ? "py-2" : "py-3"
                         )}
                     >
                         <div className="min-w-0">
-                            <label htmlFor={`n-${n.id}`} className="block truncate text-ui text-ink">{n.label}</label>
+                            <label htmlFor={`n-${n.id}`} className="line-clamp-2 text-ui text-ink">{n.label}</label>
                             {n.meta ? <span className="num block truncate text-caption text-ink-muted" title={n.meta}>{n.meta}</span> : null}
                             {n.report ? (
                                 <label className={cn("mt-1 flex items-center gap-1.5 text-caption", n.report.enabled ? "cursor-pointer text-ink-soft" : "text-ink-muted")}>
@@ -143,7 +143,7 @@ export function UeCard({
             </ul>
 
             {onAddNote || cible || compensation ? (
-                <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline/50 bg-paper/60 px-4 py-3">
+                <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline/50 bg-paper/60 px-3 py-3 sm:px-4">
                     {onAddNote ? (
                         <button
                             type="button"

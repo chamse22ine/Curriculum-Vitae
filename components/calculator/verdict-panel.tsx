@@ -161,7 +161,7 @@ export function VerdictPanel({ verdict, action, className }: { verdict: Verdict;
                     </div>
                     {reelle !== undefined && (
                         <div className="pb-1 text-right">
-                            <p className="num text-caption text-ink-muted">session 1 réelle</p>
+                            <p className="num text-caption text-ink-muted">S1 réelle</p>
                             <p className="num text-h3 text-ink-soft">{fmt2(reelle)}</p>
                         </div>
                     )}
