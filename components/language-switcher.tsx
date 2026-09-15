@@ -14,7 +14,7 @@ export function LanguageSwitcher() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <div className="glass-card rounded-full p-1 flex gap-1">
+            <div className="bg-surface border border-hairline shadow-raise rounded-full p-1 flex gap-1">
                 <Button
                     size="sm"
                     variant={language === "fr" ? "default" : "ghost"}

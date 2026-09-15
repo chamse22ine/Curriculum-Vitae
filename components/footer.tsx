@@ -5,7 +5,7 @@ import { Calculator } from "lucide-react";
 export function Footer() {
     return (
         <footer className="relative py-8 sm:py-12 px-4 z-10">
-            <div className="section-divider mb-8" />
+            <div className="h-px bg-hairline mb-8" />
             <div className="max-w-7xl mx-auto">
                 <div className="relative flex items-center justify-between px-4">
                     <p className="text-muted-foreground text-left text-sm">

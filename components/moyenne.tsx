@@ -1,262 +1,188 @@
 "use client"
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react"
+import { Award, CheckCircle, Keyboard, Scale, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { CheckCircle, Trash2, AlertTriangle, BookOpen, Award, Info, Save } from "lucide-react"
-import { MoyenneIndicator, SimulationCard, ValidationStatus, usePersistedState } from "@/components/calculator-ui"
+import { usePersistedState } from "@/components/calculator-ui"
+import { BlocsResume, type BlocResume } from "@/components/calculator/blocs-resume"
+import { CalculatorShell, useNavigationBords, type NavGroupe } from "@/components/calculator/calculator-shell"
+import { licenceCards, positionDeLigne } from "@/components/calculator/licence-cards"
+import { EntreeCartes } from "@/components/calculator/motion"
+import { RulesList, type Regle } from "@/components/calculator/rules-list"
+import { UeCard, type Bloc, type Statut } from "@/components/calculator/ue-card"
+import { useHistory, useUndoShortcut } from "@/components/calculator/use-history"
+import { licenceVerdict, moyenneSemestreLicence } from "@/components/calculator/verdict"
+import { TON_TEXTE } from "@/components/calculator/verdict-panel"
 import { createInitialData } from "@/constants/curriculum-data"
-import type { Annee, Competence } from "@/types/curriculum.types"
-import { moyenneUE, moyenneCompetence, moyenneSemestre, moyenneAnnee, analyserValidation, simulerObjectifs, UE_NAMES } from "@/lib/calculs"
-
-// --- Constants ---
+import { analyserValidation, moyenneCompetenceAnnee, UE_NAMES } from "@/lib/calculs"
+import { fmt2 } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import type { Annee } from "@/types/curriculum.types"
 
 const STORAGE_KEY = "lcer-notes"
-const TAB_LABELS = ["L1", "L2", "L3", "Résumé"]
+const SEMESTRE = /^(\d+)-(\d+)$/
 
-const RULES = [
-    { icon: CheckCircle, color: "text-indigo-500", bg: "bg-indigo-50/60", border: "border-indigo-100", text: <>Moyenne annuelle <strong className="text-indigo-600">≥ 10/20</strong> ET compétences <strong className="text-indigo-600">≥ 8/20</strong></> },
-    { icon: Award, color: "text-amber-500", bg: "bg-amber-50/60", border: "border-amber-100", text: <>Mentions : <strong className="text-amber-700">AB</strong> (12), <strong className="text-amber-700">B</strong> (14), <strong className="text-amber-700">TB</strong> (16)</> },
-    { icon: AlertTriangle, color: "text-violet-500", bg: "bg-violet-50/60", border: "border-violet-100", text: <>Les compétences <strong className="text-violet-600">se compensent entre semestres</strong> par ECTS</> },
-    { icon: Save, color: "text-emerald-500", bg: "bg-emerald-50/60", border: "border-emerald-100", text: <><strong className="text-emerald-600">Sauvegarde automatique</strong> dans le navigateur</> },
+const REGLES: Regle[] = [
+    { icon: CheckCircle, texte: <>Année validée si la moyenne annuelle est <strong>≥ 10/20</strong> et chaque compétence <strong>≥ 8/20</strong>.</> },
+    { icon: Scale, texte: <>Les compétences <strong>se compensent entre semestres</strong>, pondérées par les ECTS.</> },
+    { icon: Award, texte: <>Mentions : <strong>AB</strong> 12, <strong>B</strong> 14, <strong>TB</strong> 16.</> },
+    { icon: Keyboard, texte: <><strong>Entrée</strong> passe à la note suivante, <strong>↑ ↓</strong> ajustent de 0,25 (<strong>Maj</strong> : 1), <strong>Ctrl+Z</strong> annule. Sauvegarde automatique dans le navigateur.</> },
 ]
 
-const UE_DOTS: Record<string, string> = { UE1: "bg-blue-400", UE2: "bg-emerald-400", UE3: "bg-purple-400", UE4: "bg-orange-400", UE5: "bg-pink-400" }
-const UE_LEGEND = Object.entries(UE_NAMES).map(([code, label]) => ({ code, label, dot: UE_DOTS[code] }))
+const LEGENDE = Object.entries(UE_NAMES).map(([code, label]) => ({ code, label, bloc: `c${code.slice(2)}` as Bloc }))
 
-// --- Section components ---
+/** Moyenne annuelle de chaque compétence présente dans l'année */
+function blocsLicence(annee: Annee): BlocResume[] {
+    const { validated } = analyserValidation(annee)
 
-function CompetenceCard({ competence, onNoteChange }: {
-    competence: Competence
-    onNoteChange: (ueIdx: number, ecIdx: number, note: number) => void
-}) {
-    return (
-        <div className={`rounded-xl border overflow-hidden ${competence.color} transition-shadow duration-300 hover:shadow-md`}>
-            <div className={`px-4 py-3 ${competence.bgGradient}`}>
-                <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                        <span className="text-xs font-bold tracking-wide">{competence.code}</span>
-                        <p className="text-[11px] opacity-70 truncate">{competence.name}</p>
-                    </div>
-                    <MoyenneIndicator value={moyenneCompetence(competence)} size="sm" />
-                </div>
-            </div>
-            <div className="p-3 space-y-3">
-                {competence.ues.map((ue, ueIdx) => (
-                    <div key={ue.code} className="space-y-1.5">
-                        {competence.ues.length > 1 && (
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[11px] font-semibold text-foreground/60">{ue.name}</span>
-                                <MoyenneIndicator value={moyenneUE(ue)} size="sm" />
-                            </div>
-                        )}
-                        {ue.elements.map((ec, ecIdx) => (
-                            <div key={ec.name} className="flex items-center gap-2 bg-white/80 rounded-lg px-3 py-2 border border-white">
-                                <span className="text-xs text-foreground/70 flex-1 min-w-0 truncate">{ec.name}</span>
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">{ec.ects} ECTS</span>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    max="20"
-                                    step="0.1"
-                                    value={ec.note || ""}
-                                    onChange={(e) => onNoteChange(ueIdx, ecIdx, Number.parseFloat(e.target.value) || 0)}
-                                    className="w-[70px] h-8 text-center text-sm font-medium text-foreground bg-white border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg shadow-sm"
-                                    placeholder="—"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
+    return Object.entries(UE_NAMES).flatMap(([code, label]) => {
+        const elements = annee.semestres.flatMap((s) => s.competences.filter((c) => c.code.startsWith(code)).flatMap((c) => c.ues.flatMap((u) => u.elements)))
+        if (elements.length === 0) return []
+
+        const renseignes = elements.filter((ec) => ec.note != null).length
+        const moyenne = renseignes > 0 ? moyenneCompetenceAnnee(annee, code) : null
+        let statut: Statut = "attente"
+        if (moyenne != null && renseignes === elements.length) {
+            if (moyenne >= 10) statut = "acquis"
+            else statut = moyenne >= 8 && validated ? "compense" : "non-acquis"
+        }
+        return [{ code, bloc: `c${code.slice(2)}` as Bloc, label, moyenne, statut }]
+    })
 }
 
-function YearOverview({ annee }: { annee: Annee }) {
-    const { validated, mention, raisons, competencesAnnuelles } = analyserValidation(annee)
-    const moy = moyenneAnnee(annee)
-    const hasErrors = !validated && raisons.length > 0 && raisons[0] !== "Aucune note saisie"
-
+function ResumeAnnees({ data, onOuvrir }: { data: Annee[]; onOuvrir: (id: string) => void }) {
     return (
-        <>
-            <div className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shrink-0">
-                        <span className="text-white font-bold text-lg">L{annee.numero}</span>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-bold text-foreground">Année {annee.numero}</h2>
-                            <MoyenneIndicator value={moy} size="md" />
-                        </div>
-                        {competencesAnnuelles.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                {competencesAnnuelles.map((c) => <MoyenneIndicator key={c.code} value={c.moyenne} size="sm" />)}
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <ValidationStatus validated={validated} mention={mention} />
-            </div>
-            {hasErrors && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50/80 border border-red-200">
-                    <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                    <div className="text-sm text-red-700">
-                        <p className="font-semibold mb-1">Conditions non remplies</p>
-                        <ul className="space-y-0.5">
-                            {raisons.map((r, i) => <li key={i} className="text-xs">• {r}</li>)}
-                        </ul>
-                    </div>
-                </div>
-            )}
-            <SimulationCard sim={simulerObjectifs(annee)} />
-        </>
-    )
-}
-
-function ResumeTab({ data }: { data: Annee[] }) {
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {data.map((annee) => {
-                    const { validated, mention, competencesAnnuelles } = analyserValidation(annee)
-                    const moy = moyenneAnnee(annee)
+        <section aria-labelledby="resume-titre" className="overflow-hidden rounded-lg border border-hairline bg-surface shadow-raise">
+            <header className="border-b border-hairline bg-paper/60 px-5 py-4">
+                <p className="num text-caption uppercase tracking-[0.14em] text-ink-muted">Résumé</p>
+                <h2 id="resume-titre" className="mt-1 font-display text-h3 text-ink">Tes trois années de licence</h2>
+            </header>
+            <ul className="divide-y divide-hairline">
+                {data.map((annee, a) => {
+                    const verdict = licenceVerdict(data, a)
                     return (
-                        <div key={annee.numero} className="glass-card rounded-2xl p-5 space-y-4 hover:shadow-lg transition-shadow duration-300">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-accent flex items-center justify-center">
-                                        <span className="text-white font-bold">L{annee.numero}</span>
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-foreground text-sm">Année {annee.numero}</p>
-                                        <p className="text-xs text-muted-foreground">S{annee.numero * 2 - 1} & S{annee.numero * 2}</p>
-                                    </div>
-                                </div>
-                                <MoyenneIndicator value={moy} size="lg" />
-                            </div>
-                            <ValidationStatus validated={validated} mention={mention} />
-                            {competencesAnnuelles.length > 0 && (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    {competencesAnnuelles.map((c) => (
-                                        <div key={c.code} className="flex items-center justify-between bg-slate-50 rounded-lg px-2.5 py-1.5">
-                                            <span className="text-xs font-medium text-muted-foreground">{c.code}</span>
-                                            <MoyenneIndicator value={c.moyenne} size="sm" />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <li key={annee.numero}>
+                            <button
+                                type="button"
+                                onClick={() => onOuvrir(`${a}-0`)}
+                                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors duration-100 ease-out-ui hover:bg-surface-sunk"
+                            >
+                                <span className="num w-8 shrink-0 text-caption font-semibold text-primary">L{annee.numero}</span>
+                                <span className="min-w-0 flex-1">
+                                    <span className={cn("block truncate font-display text-xl", TON_TEXTE[verdict.ton])}>{verdict.phrase}</span>
+                                    <span className="num block truncate text-caption text-ink-muted">
+                                        {verdict.detail}
+                                        {verdict.mention ? ` · mention ${verdict.mention}` : ""}
+                                    </span>
+                                </span>
+                                <span className="num text-xl text-ink">{fmt2(verdict.moyenne)}</span>
+                            </button>
+                        </li>
                     )
                 })}
-            </div>
-
-            {/* Rules */}
-            <div className="glass-card rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 bg-linear-to-r from-primary/5 to-accent/5 border-b border-border/50">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                        <Info className="h-4 w-4 text-primary" />
-                        Règles de validation
-                    </h3>
-                </div>
-                <div className="p-5 space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {RULES.map((rule, i) => (
-                            <div key={i} className={`flex items-start gap-2.5 p-3 rounded-xl ${rule.bg} border ${rule.border}`}>
-                                <rule.icon className={`h-4 w-4 ${rule.color} mt-0.5 shrink-0`} />
-                                <p className="text-xs text-foreground/80 leading-relaxed">{rule.text}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">Compétences</p>
-                        <div className="flex flex-wrap gap-2">
-                            {UE_LEGEND.map((ue) => (
-                                <span key={ue.code} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-slate-50 border border-slate-100 rounded-full px-3 py-1">
-                                    <span className={`w-2 h-2 rounded-full ${ue.dot}`} />
-                                    <strong className="text-foreground/70">{ue.code}</strong>
-                                    <span className="hidden sm:inline">{ue.label}</span>
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </ul>
+        </section>
     )
 }
-
-// --- Main component ---
 
 export default function LCeRCalculator() {
     const [data, setData] = usePersistedState(STORAGE_KEY, createInitialData)
+    const { commit, undo, canUndo } = useHistory(data, setData)
+    const [vue, setVue] = useState("0-0")
+    const [anneeIdx, setAnneeIdx] = useState(0)
+    // Remonte les champs après une remise à zéro (efface aussi les saisies invalides en cours)
+    const [generation, setGeneration] = useState(0)
+    useUndoShortcut(undo)
 
-    const updateNote = (anneeIdx: number, semIdx: number, compIdx: number, ueIdx: number, ecIdx: number, note: number) => {
-        const next = [...data]
-        next[anneeIdx].semestres[semIdx].competences[compIdx].ues[ueIdx].elements[ecIdx].note = note
-        setData(next)
+    const selectionner = (id: string) => {
+        setVue(id)
+        const position = SEMESTRE.exec(id)
+        if (position) setAnneeIdx(Number(position[1]))
     }
 
-    const resetData = () => {
-        if (confirm("Êtes-vous sûr de vouloir effacer toutes les données ?")) {
-            setData(createInitialData())
+    const semestres = data.flatMap((annee, a) => annee.semestres.map((_, s) => `${a}-${s}`))
+    const onEdge = useNavigationBords(semestres, vue, selectionner)
+
+    const setNote = (id: string, value: number | null) => {
+        const [a, s, c, u, e] = positionDeLigne(id)
+        const next = structuredClone(data)
+        const ec = next[a].semestres[s].competences[c].ues[u].elements[e]
+        if (value == null) delete ec.note
+        else ec.note = value
+        commit(next, id)
+    }
+
+    const resetAll = () => {
+        if (confirm("Effacer toutes les notes de licence ?")) {
+            commit(createInitialData())
+            setGeneration((g) => g + 1)
         }
     }
 
-    return (
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 py-6">
-            <Tabs defaultValue="annee1" className="w-full">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <TabsList className="glass-card p-1 h-auto inline-flex w-auto">
-                        {TAB_LABELS.map((label, i) => (
-                            <TabsTrigger
-                                key={label}
-                                value={i < 3 ? `annee${i + 1}` : "resume"}
-                                className="text-sm px-5 py-2 data-[state=active]:bg-linear-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white data-[state=active]:shadow-md rounded-lg transition-all duration-300"
-                            >
-                                {label}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                    <Button variant="ghost" size="sm" onClick={resetData} className="text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors">
-                        <Trash2 className="w-4 h-4 mr-1.5" />
-                        Réinitialiser
-                    </Button>
-                </div>
+    const groupes: NavGroupe[] = [
+        ...data.map((annee, a) => ({
+            titre: `Licence ${annee.numero}`,
+            items: annee.semestres.map((s, si) => ({
+                id: `${a}-${si}`,
+                label: `Semestre ${s.numero}`,
+                court: `S${s.numero}`,
+                valeur: moyenneSemestreLicence(s),
+            })),
+        })),
+        { items: [{ id: "resume", label: "Résumé des années", court: "Résumé" }, { id: "regles", label: "Règles", court: "Règles" }] },
+    ]
 
-                {data.map((annee, anneeIdx) => (
-                    <TabsContent key={annee.numero} value={`annee${annee.numero}`} className="space-y-6">
-                        <YearOverview annee={annee} />
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            {annee.semestres.map((semestre, semIdx) => (
-                                <div key={semestre.numero} className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <BookOpen className="h-4 w-4 text-primary" />
-                                            <h3 className="font-semibold text-foreground">Semestre {semestre.numero}</h3>
-                                        </div>
-                                        <MoyenneIndicator value={moyenneSemestre(semestre)} size="md" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        {semestre.competences.map((comp, compIdx) => (
-                                            <CompetenceCard
-                                                key={comp.code}
-                                                competence={comp}
-                                                onNoteChange={(ueIdx, ecIdx, note) => updateNote(anneeIdx, semIdx, compIdx, ueIdx, ecIdx, note)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </TabsContent>
-                ))}
+    const position = SEMESTRE.exec(vue)
 
-                <TabsContent value="resume">
-                    <ResumeTab data={data} />
-                </TabsContent>
-            </Tabs>
+    const barre = (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="num text-caption uppercase tracking-[0.14em] text-ink-muted">Verdict : Licence {data[anneeIdx].numero}</p>
+            <div className="flex flex-wrap items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="gap-1.5 text-ink-soft">
+                    <Undo2 className="size-4" aria-hidden />
+                    Annuler
+                </Button>
+                <Button variant="ghost" size="sm" onClick={resetAll} className="gap-1.5 text-ink-muted hover:text-danger">
+                    <Trash2 className="size-4" aria-hidden />
+                    Réinitialiser
+                </Button>
+            </div>
         </div>
+    )
+
+    let contenu
+    if (position) {
+        const a = Number(position[1])
+        const s = Number(position[2])
+        const annee = data[a]
+        const semestre = annee.semestres[s]
+        const dense = annee.semestres.reduce((n, sem) => n + sem.competences.length, 0) > 8
+
+        contenu = (
+            <div className="space-y-4">
+                <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="font-display text-h3 text-ink">
+                        Semestre {semestre.numero} <span className="num text-caption text-ink-muted">· Licence {annee.numero}</span>
+                    </h2>
+                    <p className="num text-ui text-ink-muted">{fmt2(moyenneSemestreLicence(semestre))}</p>
+                </div>
+                <BlocsResume titre="Compétences sur l'année" blocs={blocsLicence(annee)} />
+                <EntreeCartes key={vue} className="space-y-4">
+                    {licenceCards(annee, a, s).map((card) => (
+                        <UeCard key={`${generation}-${card.code}`} {...card} dense={dense} onNoteChange={setNote} onEdge={onEdge} />
+                    ))}
+                </EntreeCartes>
+            </div>
+        )
+    } else if (vue === "resume") {
+        contenu = <ResumeAnnees data={data} onOuvrir={selectionner} />
+    } else {
+        contenu = <RulesList titre="Licence Informatique" regles={REGLES} legende={LEGENDE} />
+    }
+
+    return (
+        <CalculatorShell groupes={groupes} courant={vue} onSelect={selectionner} barre={barre} verdict={licenceVerdict(data, anneeIdx)}>
+            {contenu}
+        </CalculatorShell>
     )
 }
