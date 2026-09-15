@@ -15,7 +15,8 @@ import { Locale } from "@svar-ui/react-core"
 import { fr } from "@svar-ui/calendar-locales"
 import { fr as frCore } from "@svar-ui/core-locales"
 import { cn } from "@/lib/utils"
-import { CATEGORIES, ORDRE_CATEGORIES, deuxChiffres, estCategorie, fmtHeures, nouvelId, type Categorie, type Creneau } from "@/lib/heures"
+import { PREFIXE_PROPOSITION } from "@/lib/bu"
+import { CATEGORIES, ORDRE_CATEGORIES, estCategorie, fmtHeures, fmtHoraire, nouvelId, type Categorie, type Creneau } from "@/lib/heures"
 import "@svar-ui/react-calendar/all.css"
 import "./calendrier.css"
 
@@ -82,13 +83,15 @@ export const versCreneau = (event: CalendarEvent): Creneau => ({
     source: typeof event.source === "string" ? event.source : undefined,
 })
 
-const classeCreneau = ({ event }: { event: CalendarEvent }) => `hr-${categorieDe(event)}`
+/** Horaire conseillé pour la BU, affiché en pointillé et jamais enregistré */
+const estProposition = (id: unknown) => String(id).startsWith(PREFIXE_PROPOSITION)
 
-const horaire = (d: Date) => `${d.getHours()}h${d.getMinutes() ? deuxChiffres(d.getMinutes()) : ""}`
+const classeCreneau = ({ event }: { event: CalendarEvent }) => (estProposition(event.id) ? "hr-bu hr-suggestion" : `hr-${categorieDe(event)}`)
 
 /** Catégorie en tête, puis horaire et durée : un créneau se lit sans ouvrir l'éditeur */
 function ContenuCreneau({ event, mode }: { event: CalendarEvent; mode: EventContentMode }) {
-    const { label } = CATEGORIES[categorieDe(event)]
+    const label = estProposition(event.id) ? "BU conseillée" : CATEGORIES[categorieDe(event)].label
+    const horaire = fmtHoraire
     const duree = event.allDay ? "journée" : fmtHeures((event.end.getTime() - event.start.getTime()) / 3_600_000)
 
     if (mode === "boxes") {
@@ -114,7 +117,7 @@ function ContenuCreneau({ event, mode }: { event: CalendarEvent; mode: EventCont
  * Calendrier SVAR (jour, semaine, mois) : glisser dans la grille crée un créneau de la catégorie choisie,
  * cliquer ouvre l'éditeur. Monté côté client uniquement, il ne lit ses props initiales qu'une fois.
  */
-export function CalendrierHeures({ creneauxInitiaux, dateInitiale, vueInitiale, categorie, onChange, onNavigate, preparer, onApi }: {
+export function CalendrierHeures({ creneauxInitiaux, dateInitiale, vueInitiale, categorie, onChange, onNavigate, preparer, onProposition, onApi }: {
     creneauxInitiaux: Creneau[]
     dateInitiale: Date
     vueInitiale: VueCalendrier
@@ -124,13 +127,15 @@ export function CalendrierHeures({ creneauxInitiaux, dateInitiale, vueInitiale, 
     onNavigate: (date: Date, vue: VueCalendrier) => void
     /** Créneaux à ajouter pour la plage affichée (mois encore jamais ouverts) */
     preparer: (debut: Date, fin: Date) => Creneau[]
+    /** Horaire conseillé touché dans la grille */
+    onProposition?: (id: string) => void
     onApi?: (api: CalendarInstanceApi) => void
 }) {
     const [api, setApi] = useState<CalendarInstanceApi | null>(null)
     // Lus au moment de l'action : changer de catégorie ne réinitialise pas le calendrier
-    const rappels = useRef({ categorie, onChange, onNavigate, preparer })
+    const rappels = useRef({ categorie, onChange, onNavigate, preparer, onProposition })
     useEffect(() => {
-        rappels.current = { categorie, onChange, onNavigate, preparer }
+        rappels.current = { categorie, onChange, onNavigate, preparer, onProposition }
     })
 
     const init = useCallback(
@@ -145,14 +150,22 @@ export function CalendrierHeures({ creneauxInitiaux, dateInitiale, vueInitiale, 
             })
 
             // Un créneau de la semaine type retouché devient un créneau à soi : un import ICS ne l'effacera plus
+            // Un horaire conseillé ne se déplace pas : il s'accepte ou se refuse dans la liste
             const detacher = (action: unknown) => {
                 const maj = action as { id: string | number; event: Partial<CalendarEvent> }
+                if (estProposition(maj.id)) return false
                 if (instance.getEvent(maj.id)?.source === "type") maj.event = { ...maj.event, source: undefined }
             }
             instance.intercept("update-event", detacher)
             instance.intercept("move-event", detacher)
+            instance.intercept("select-event", (action) => {
+                const { id } = action as { id: string | number | null }
+                if (id == null || !estProposition(id)) return
+                rappels.current.onProposition?.(String(id))
+                return false
+            })
 
-            const synchroniser = () => rappels.current.onChange(instance.getEvents().map(versCreneau))
+            const synchroniser = () => rappels.current.onChange(instance.getEvents().filter((ev) => !estProposition(ev.id)).map(versCreneau))
             instance.on("add-event", synchroniser)
             instance.on("update-event", synchroniser)
             // Glisser ou redimensionner passe par move-event, qui ne relaie pas update-event

@@ -61,3 +61,14 @@
   opacity: 1;
   background-color: color-mix(in srgb, var(--hr-couleur) 32%, var(--surface));
 }
+
+/* Horaire conseillé pour la BU : en pointillé tant qu'il n'est pas accepté */
+.hr-calendrier :is(.wx-box-event, .wx-bar-event).hr-suggestion,
+.hr-calendrier :is(.wx-box-event, .wx-bar-event).hr-suggestion:hover {
+  background-color: color-mix(in srgb, var(--hr-couleur) 7%, var(--surface));
+  background-image: repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in srgb, var(--hr-couleur) 10%, transparent) 6px 12px);
+  box-shadow: none;
+  outline: 2px dashed var(--hr-couleur);
+  outline-offset: -2px;
+  color: var(--ink-soft);
+}

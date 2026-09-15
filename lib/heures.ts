@@ -50,6 +50,9 @@ export function fmtHeures(heures: number): string {
     return `${Math.floor(minutes / 60)}h${reste === 0 ? "" : deuxChiffres(reste)}`
 }
 
+/** 9 h → « 9h », 17 h 30 → « 17h30 » */
+export const fmtHoraire = (d: Date) => `${d.getHours()}h${d.getMinutes() ? deuxChiffres(d.getMinutes()) : ""}`
+
 /** Saisie tolérante : « 7,5 », « 7.5 », « 7h30 », « 7:30 » et « 7h ». null si illisible */
 export function parseDuree(brut: string): number | null {
     const texte = brut.trim().toLowerCase().replace(/\s+/g, "")
@@ -131,6 +134,20 @@ export function creneauxTypes(jours: Date[]): Creneau[] {
         return PLAGES_TYPE.map(([de, a]) => ({ id: nouvelId(), categorie, start: aHeure(jour, de), end: aHeure(jour, a), source: "type" }))
     })
 }
+
+const NOMS_JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"]
+
+/** Jour d'entreprise dans la semaine type (jeudi et vendredi) */
+export const estJourEntreprise = (d: Date) => SEMAINE_TYPE[d.getDay()] === "entreprise"
+
+/** « le jeudi et le vendredi », d'après la semaine type */
+export function libelleJoursEntreprise(): string {
+    const noms = NOMS_JOURS.filter((_, i) => SEMAINE_TYPE[i] === "entreprise").map((nom) => `le ${nom}`)
+    return noms.length > 1 ? `${noms.slice(0, -1).join(", ")} et ${noms.at(-1)}` : (noms[0] ?? "")
+}
+
+/** « 9h–12h et 14h–18h » */
+export const libellePlagesType = () => PLAGES_TYPE.map(([de, a]) => `${de}h–${a}h`).join(" et ")
 
 /** Créneau posé par la semaine type. Les premiers n'avaient pas de source : on les reconnaît à leur plage exacte */
 export function estSemaineType(c: Creneau): boolean {

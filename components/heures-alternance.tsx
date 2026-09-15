@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react"
 import dynamic from "next/dynamic"
-import { CalendarPlus, ChevronLeft, ChevronRight, MousePointerClick, Plus } from "lucide-react"
+import { BookOpen, CalendarPlus, ChevronLeft, ChevronRight, MousePointerClick, Plus } from "lucide-react"
 import type { CalendarEvent, CalendarInstanceApi } from "@svar-ui/react-calendar"
 import { usePersistedState } from "@/components/calculator-ui"
 import { CartePeriode, ResumeMois } from "@/components/heures/bilan-heures"
 import type { VueCalendrier } from "@/components/heures/calendrier-heures"
 import { CalendriersIcs } from "@/components/heures/calendriers-ics"
+import { PropositionsBu } from "@/components/heures/propositions-bu"
 import { ReglagesHeures } from "@/components/heures/reglages-heures"
 import { SelecteurCategorie } from "@/components/heures/selecteur-categorie"
 import { chargerCreneaux, enregistrerCreneaux, preparerMois } from "@/components/heures/stockage"
@@ -17,6 +18,7 @@ import {
     cleMois,
     creneauxTypes,
     dateLocale,
+    debutJour,
     debutMois,
     fmtHeures,
     isoJour,
@@ -34,6 +36,7 @@ import {
     type Creneau,
     type Reglages,
 } from "@/lib/heures"
+import { FERMETURE_BU, OUVERTURE_BU, proposerBu, type PropositionBu } from "@/lib/bu"
 import type { CalendrierIcs } from "@/lib/ics"
 
 // SVAR mesure le DOM : aucun rendu serveur, et le paquet reste hors du bundle des autres pages
@@ -67,6 +70,20 @@ function useEcranLarge(): boolean {
     return useSyncExternalStore(suivreEcran, () => window.matchMedia(REQUETE_ECRAN_LARGE).matches, () => true)
 }
 
+function messageConseil(propositions: PropositionBu[], aFaire: number, mois: Date, maintenant: Date): string {
+    const nomMois = libelleMois(mois)
+    const plage = `le lundi, mardi ou mercredi entre ${OUVERTURE_BU}h et ${FERMETURE_BU}h`
+    if (aFaire <= 0) return `Objectif de ${nomMois} atteint : pas besoin de BU.`
+    if (moisSuivant(mois) <= debutJour(maintenant)) return `${nomMois.charAt(0).toUpperCase()}${nomMois.slice(1)} est terminé : plus rien à proposer.`
+    if (propositions.length === 0) return `Aucune plage libre d'au moins 1h ${plage} d'ici la fin de ${nomMois}.`
+
+    const propose = propositions.reduce((total, p) => total + (p.end.getTime() - p.start.getTime()) / 3_600_000, 0)
+    const nombre = `${propositions.length} ${propositions.length > 1 ? "créneaux" : "créneau"}`
+    return propose >= aFaire
+        ? `${nombre} pour tes ${fmtHeures(aFaire)} de BU, ${plage}.`
+        : `${nombre} pour ${fmtHeures(propose)} sur ${fmtHeures(aFaire)} à faire : plus assez de place ${plage}.`
+}
+
 export default function HeuresAlternance() {
     const aujourdhui = useAujourdhui()
     // Premier rendu (serveur et hydratation) : rien à afficher tant que la date du navigateur est inconnue
@@ -91,6 +108,10 @@ function Suivi({ aujourdhui: isoAujourdhui }: { aujourdhui: string }) {
     const [affichage, setAffichage] = useState({ date: aujourdhui, vue: vueInitiale })
     const [categorie, setCategorie] = useState<Categorie>("entreprise")
     const [api, setApi] = useState<CalendarInstanceApi | null>(null)
+    const [propositions, setPropositions] = useState<PropositionBu[]>([])
+    /** Message de la liste des horaires conseillés ; null quand elle est fermée */
+    const [conseil, setConseil] = useState<string | null>(null)
+    const [selection, setSelection] = useState<string | null>(null)
 
     // Sur téléphone, seule la vue jour est lisible : on y revient si l'écran rétrécit
     useEffect(() => {
@@ -112,7 +133,37 @@ function Suivi({ aujourdhui: isoAujourdhui }: { aujourdhui: string }) {
     // Import, actualisation ou retrait d'un calendrier : la liste complète remplace celle du calendrier, qui enregistre ensuite
     const appliquerCalendriers = (liste: Creneau[], nouveaux: CalendrierIcs[]) => {
         setCalendriers(nouveaux)
+        // Le reset efface aussi les pointillés : la liste des horaires conseillés se ferme avec eux
+        fermerConseil()
         api?.exec("provide-data", { data: { events: liste as CalendarEvent[] }, reset: true })
+    }
+
+    const fermerConseil = () => {
+        setPropositions([])
+        setConseil(null)
+        setSelection(null)
+    }
+    // Horaires conseillés : les heures qui manquent au mois affiché, en pointillé dans la grille
+    const conseillerBu = () => {
+        for (const p of propositions) api?.exec("delete-event", { id: p.id })
+        const maintenant = new Date()
+        const aFaire = suivi.mois.restant
+        const nouvelles = aFaire > 0 ? proposerBu(creneaux, affichage.date, maintenant, aFaire) : []
+        setPropositions(nouvelles)
+        setSelection(null)
+        setConseil(messageConseil(nouvelles, aFaire, affichage.date, maintenant))
+        if (nouvelles.length === 0) return
+        api?.exec("provide-data", { data: { events: nouvelles.map((p) => ({ ...p, categorie: "bu" })) as CalendarEvent[] } })
+        api?.exec("navigate-to", { date: nouvelles[0].start })
+    }
+    const traiterPropositions = (ids: string[], accepter: boolean) => {
+        for (const p of propositions.filter((p) => ids.includes(p.id))) {
+            api?.exec("delete-event", { id: p.id })
+            if (accepter) api?.exec("add-event", { event: { start: p.start, end: p.end, categorie: "bu" } })
+        }
+        const restantes = propositions.filter((p) => !ids.includes(p.id))
+        setPropositions(restantes)
+        if (restantes.length === 0) fermerConseil()
     }
     // Bouton + du téléphone : une heure sur le jour affiché, à l'heure suivante si c'est aujourd'hui
     const ajouterCreneau = () => {
@@ -172,17 +223,29 @@ function Suivi({ aujourdhui: isoAujourdhui }: { aujourdhui: string }) {
             <section aria-label="Calendrier des heures" className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                     <SelecteurCategorie legende="Nouveau créneau" valeur={categorie} onChange={setCategorie} />
-                    {joursVides.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {joursVides.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={completerMois}
+                                className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface px-3 text-ui font-medium text-primary transition-colors duration-100 ease-out-ui hover:border-primary"
+                            >
+                                <CalendarPlus className="size-4 shrink-0" aria-hidden />
+                                Remplir {joursVides.length} {joursVides.length > 1 ? "jours vides" : "jour vide"}
+                                <span className="hidden sm:inline">avec la semaine type</span>
+                            </button>
+                        )}
                         <button
                             type="button"
-                            onClick={completerMois}
-                            className="inline-flex h-10 items-center gap-2 rounded-md border border-hairline-strong bg-surface px-3 text-ui font-medium text-primary transition-colors duration-100 ease-out-ui hover:border-primary"
+                            onClick={conseillerBu}
+                            disabled={!api}
+                            className="inline-flex h-10 items-center gap-2 rounded-md border border-dashed border-c5 bg-surface px-3 text-ui font-medium text-ink transition-colors duration-100 ease-out-ui hover:bg-surface-sunk disabled:opacity-60"
                         >
-                            <CalendarPlus className="size-4 shrink-0" aria-hidden />
-                            Remplir {joursVides.length} {joursVides.length > 1 ? "jours vides" : "jour vide"}
-                            <span className="hidden sm:inline">avec la semaine type</span>
+                            <BookOpen className="size-4 shrink-0 text-c5" aria-hidden />
+                            {conseil === null ? "Horaires conseillés" : "Recalculer"}
+                            <span className="hidden sm:inline">pour la BU</span>
                         </button>
-                    )}
+                    </div>
                 </div>
                 <p className="flex items-start gap-2 text-caption text-ink-muted">
                     <MousePointerClick className="mt-px size-4 shrink-0" aria-hidden />
@@ -195,6 +258,17 @@ function Suivi({ aujourdhui: isoAujourdhui }: { aujourdhui: string }) {
                         <span>Semaine type : 9h–12h et 14h–18h. Touche + pour ajouter un créneau, touche un créneau pour le modifier.</span>
                     )}
                 </p>
+                {conseil !== null && (
+                    <PropositionsBu
+                        propositions={propositions}
+                        message={conseil}
+                        selection={selection}
+                        onAccepter={(ids) => traiterPropositions(ids, true)}
+                        onRefuser={(ids) => traiterPropositions(ids, false)}
+                        onVoir={(date) => api?.exec("navigate-to", { date })}
+                        onFermer={fermerConseil}
+                    />
+                )}
                 <div
                     className={cn(
                         "hr-calendrier flex h-[75dvh] min-h-[540px] flex-col overflow-hidden rounded-lg border border-hairline bg-surface shadow-raise lg:h-[800px]",
@@ -219,6 +293,7 @@ function Suivi({ aujourdhui: isoAujourdhui }: { aujourdhui: string }) {
                             onChange={enregistrer}
                             onNavigate={(date, vue) => setAffichage({ date, vue })}
                             preparer={(debut, fin) => preparerMois(creneaux, debut, fin)}
+                            onProposition={setSelection}
                             onApi={setApi}
                         />
                     </div>

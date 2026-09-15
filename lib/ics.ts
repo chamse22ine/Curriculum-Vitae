@@ -1,5 +1,16 @@
 import { parseICal } from "@svar-ui/calendar-ical"
-import { ajouterJours, debutJour, debutSemaine, estSemaineType, isoJour, isoMinute, type Categorie, type Creneau } from "@/lib/heures"
+import {
+    ajouterJours,
+    creneauxTypes,
+    debutJour,
+    debutSemaine,
+    estJourEntreprise,
+    estSemaineType,
+    isoJour,
+    isoMinute,
+    type Categorie,
+    type Creneau,
+} from "@/lib/heures"
 
 /** Calendrier importé : ses créneaux portent son id dans `source` */
 export interface CalendrierIcs {
@@ -10,6 +21,11 @@ export interface CalendrierIcs {
     url?: string
     /** Les jours qui reçoivent ce calendrier perdent la semaine type */
     remplacerSemaineType: boolean
+    /**
+     * Les jours d'entreprise de la semaine type (jeudi, vendredi) ignorent ce calendrier et gardent leurs créneaux.
+     * Absent sur les calendriers importés avant l'option : ils sont protégés aussi.
+     */
+    garderJoursEntreprise?: boolean
     /** Date ISO du dernier import */
     importeLe: string
 }
@@ -20,6 +36,8 @@ export interface LectureIcs {
     nom: string | null
     /** Événements sans dates exploitables ou récurrences non gérées (mensuelles, annuelles) */
     ignores: number
+    /** Événements laissés de côté parce qu'ils tombent un jour d'entreprise */
+    ecartes: number
 }
 
 const JOURS_ICS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]
@@ -74,7 +92,7 @@ function occurrences(debut: Date, rrule: string, exclues: Set<number>): Date[] |
     return debuts
 }
 
-export function lireIcs(texte: string, calendrier: Pick<CalendrierIcs, "id" | "categorie">): LectureIcs {
+export function lireIcs(texte: string, calendrier: Pick<CalendrierIcs, "id" | "categorie" | "garderJoursEntreprise">): LectureIcs {
     if (!texte.includes("BEGIN:VCALENDAR")) throw new Error("Ce fichier n'est pas un calendrier ICS.")
     let evenements: ReturnType<typeof parseICal>
     try {
@@ -94,10 +112,16 @@ export function lireIcs(texte: string, calendrier: Pick<CalendrierIcs, "id" | "c
     const creneaux: Creneau[] = []
     const vus = new Map<string, number>()
     let ignores = 0
+    let ecartes = 0
 
     const ajouter = (base: string, start: Date, end: Date, allDay: boolean | undefined, text: unknown) => {
         const fin = end > start ? end : allDay ? ajouterJours(start, 1) : null
         if (!fin) return
+        // Jour d'entreprise de la semaine type : l'import n'y touche pas
+        if (calendrier.garderJoursEntreprise !== false && estJourEntreprise(start)) {
+            ecartes++
+            return
+        }
         // Un même UID peut revenir : l'id doit rester unique dans le calendrier SVAR
         const rang = vus.get(base) ?? 0
         vus.set(base, rang + 1)
@@ -131,24 +155,41 @@ export function lireIcs(texte: string, calendrier: Pick<CalendrierIcs, "id" | "c
         for (const debut of debuts) ajouter(`${ev.id}@${isoMinute(debut)}`, debut, new Date(debut.getTime() + duree), ev.allDay, ev.text)
     }
 
-    return { creneaux, nom: /^X-WR-CALNAME:(.+)$/m.exec(texte)?.[1]?.trim() || null, ignores }
+    return { creneaux, nom: /^X-WR-CALNAME:(.+)$/m.exec(texte)?.[1]?.trim() || null, ignores, ecartes }
 }
 
 /**
- * Remplace les créneaux d'un calendrier par sa nouvelle lecture. Si demandé, les jours qui reçoivent
- * des créneaux importés perdent la semaine type : l'emploi du temps réel prime.
+ * Remplace les créneaux d'un calendrier par sa nouvelle lecture (liste vide pour le retirer). Si demandé, les jours
+ * qui reçoivent des créneaux importés perdent la semaine type : l'emploi du temps réel prime. Les jours d'entreprise
+ * que ce calendrier occupait, et qui restent vides, retrouvent la semaine type.
  */
-export function appliquerImport(existants: Creneau[], importes: Creneau[], calendrier: Pick<CalendrierIcs, "id" | "remplacerSemaineType">) {
+export function appliquerImport(
+    existants: Creneau[],
+    importes: Creneau[],
+    calendrier: Pick<CalendrierIcs, "id" | "remplacerSemaineType" | "garderJoursEntreprise">
+) {
     const joursImportes = new Set(importes.map((c) => isoJour(c.start)))
     const joursRemplaces = new Set<string>()
+    const joursLiberes = new Map<string, Date>()
     const conserves = existants.filter((c) => {
-        if (c.source === calendrier.id) return false
         const jour = isoJour(c.start)
+        if (c.source === calendrier.id) {
+            joursLiberes.set(jour, debutJour(c.start))
+            return false
+        }
         if (calendrier.remplacerSemaineType && joursImportes.has(jour) && estSemaineType(c)) {
             joursRemplaces.add(jour)
             return false
         }
         return true
     })
-    return { liste: [...conserves, ...importes], joursRemplaces: joursRemplaces.size }
+    const liste = [...conserves, ...importes]
+
+    const occupes = new Set(liste.map((c) => isoJour(c.start)))
+    const aRestaurer =
+        calendrier.garderJoursEntreprise === false
+            ? []
+            : [...joursLiberes].filter(([jour, date]) => estJourEntreprise(date) && !occupes.has(jour)).map(([, date]) => date)
+
+    return { liste: [...liste, ...creneauxTypes(aRestaurer)], joursRemplaces: joursRemplaces.size, joursRestaures: aRestaurer.length }
 }

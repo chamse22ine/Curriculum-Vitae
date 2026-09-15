@@ -5,7 +5,7 @@ import { CalendarDays, ChevronDown, FileUp, Link2, RefreshCw, Trash2 } from "luc
 import { LABEL } from "@/components/heures/bilan-heures"
 import { SelecteurCategorie } from "@/components/heures/selecteur-categorie"
 import { cn } from "@/lib/utils"
-import { CATEGORIES, nouvelId, type Categorie, type Creneau } from "@/lib/heures"
+import { CATEGORIES, libelleJoursEntreprise, libellePlagesType, nouvelId, type Categorie, type Creneau } from "@/lib/heures"
 import { appliquerImport, lireIcs, type CalendrierIcs } from "@/lib/ics"
 
 type Source = "fichier" | "lien"
@@ -20,6 +20,7 @@ const BOUTON_ICONE =
 const FORMAT_IMPORT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
 
 const pluriel = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`
+const JOURS_ENTREPRISE = libelleJoursEntreprise()
 
 /** Le navigateur ne peut pas lire un calendrier d'un autre domaine (CORS) : la route /api/ics le récupère */
 async function telecharger(lien: string): Promise<string> {
@@ -54,6 +55,7 @@ export function CalendriersIcs({ calendriers, creneaux, pret, onAppliquer }: {
     const [nom, setNom] = useState("")
     const [categorie, setCategorie] = useState<Categorie>("cours")
     const [remplacer, setRemplacer] = useState(true)
+    const [garderEntreprise, setGarderEntreprise] = useState(true)
     /** « nouveau » ou id du calendrier en cours d'actualisation */
     const [enCours, setEnCours] = useState<string | null>(null)
     const [retour, setRetour] = useState<Retour | null>(null)
@@ -66,16 +68,24 @@ export function CalendriersIcs({ calendriers, creneaux, pret, onAppliquer }: {
 
     const appliquer = (texte: string, calendrier: CalendrierIcs, repli: string) => {
         const lecture = lireIcs(texte, calendrier)
-        if (lecture.creneaux.length === 0) throw new Error("Aucun événement exploitable dans ce calendrier.")
+        if (lecture.creneaux.length === 0) {
+            throw new Error(
+                lecture.ecartes > 0
+                    ? `Tous les événements tombent ${JOURS_ENTREPRISE}, gardés pour l'entreprise : décoche l'option pour les importer.`
+                    : "Aucun événement exploitable dans ce calendrier."
+            )
+        }
 
         const maj: CalendrierIcs = { ...calendrier, nom: calendrier.nom || lecture.nom || repli, importeLe: new Date().toISOString() }
-        const { liste, joursRemplaces } = appliquerImport(etat.current.creneaux, lecture.creneaux, maj)
+        const { liste, joursRemplaces, joursRestaures } = appliquerImport(etat.current.creneaux, lecture.creneaux, maj)
         const connus = etat.current.calendriers
         onAppliquer(liste, connus.some((c) => c.id === maj.id) ? connus.map((c) => (c.id === maj.id ? maj : c)) : [...connus, maj])
 
         const details = [
             `${pluriel(lecture.creneaux.length, "créneau importé", "créneaux importés")} depuis « ${maj.nom} »`,
             joursRemplaces > 0 && `semaine type retirée sur ${pluriel(joursRemplaces, "jour", "jours")}`,
+            lecture.ecartes > 0 && `${pluriel(lecture.ecartes, "événement laissé", "événements laissés")} de côté ${JOURS_ENTREPRISE} (entreprise)`,
+            joursRestaures > 0 && `entreprise remise sur ${pluriel(joursRestaures, "jour", "jours")}`,
             lecture.ignores > 0 && `${pluriel(lecture.ignores, "événement ignoré", "événements ignorés")} (récurrence mensuelle ou annuelle)`,
         ]
         setRetour({ ton: "succes", texte: `${details.filter(Boolean).join(" · ")}.` })
@@ -110,6 +120,7 @@ export function CalendriersIcs({ calendriers, creneaux, pret, onAppliquer }: {
                 nom: nom.trim(),
                 categorie,
                 remplacerSemaineType: remplacer,
+                garderJoursEntreprise: garderEntreprise,
                 importeLe: "",
                 ...(source === "lien" ? { url: lienSaisi } : {}),
             }
@@ -129,12 +140,15 @@ export function CalendriersIcs({ calendriers, creneaux, pret, onAppliquer }: {
 
     const retirer = (calendrier: CalendrierIcs) => {
         const nombre = creneaux.filter((c) => c.source === calendrier.id).length
-        if (!window.confirm(`Retirer « ${calendrier.nom} » et ses ${pluriel(nombre, "créneau", "créneaux")} ?`)) return
+        const quoi = nombre > 1 ? `ses ${nombre} créneaux` : nombre === 1 ? "son créneau" : "ses créneaux"
+        if (!window.confirm(`Retirer « ${calendrier.nom} » et ${quoi} ?`)) return
+        const { liste, joursRestaures } = appliquerImport(creneaux, [], calendrier)
         onAppliquer(
-            creneaux.filter((c) => c.source !== calendrier.id),
+            liste,
             calendriers.filter((c) => c.id !== calendrier.id)
         )
-        setRetour({ ton: "succes", texte: `« ${calendrier.nom} » retiré. « Remplir les jours vides » peut reposer la semaine type.` })
+        const restauration = joursRestaures > 0 ? ` Entreprise remise sur ${pluriel(joursRestaures, "jour", "jours")}.` : ""
+        setRetour({ ton: "succes", texte: `« ${calendrier.nom} » retiré.${restauration} « Remplir les jours vides » peut reposer le reste de la semaine type.` })
     }
 
     const occupe = !pret || enCours !== null
@@ -250,6 +264,13 @@ export function CalendriersIcs({ calendriers, creneaux, pret, onAppliquer }: {
                     <label className="flex items-start gap-2.5 text-ui text-ink-soft">
                         <input type="checkbox" checked={remplacer} onChange={(e) => setRemplacer(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-primary" />
                         <span>Remplacer la semaine type les jours où ce calendrier a des créneaux</span>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 text-ui text-ink-soft">
+                        <input type="checkbox" checked={garderEntreprise} onChange={(e) => setGarderEntreprise(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-primary" />
+                        <span>
+                            Ignorer ce calendrier {JOURS_ENTREPRISE} : ces jours restent en entreprise ({libellePlagesType()}), modifiables à la main
+                        </span>
                     </label>
 
                     <button
