@@ -22,7 +22,7 @@ const PROJECT_META: { icon: LucideIcon; tags: string; color: string }[] = [
 
 const CONTACT_LINKS = [
   { icon: Github, label: "GitHub", handle: "chamse22ine", href: "https://github.com/chamse22ine" },
-  { icon: Linkedin, label: "LinkedIn", handle: "chamseddine-adaadour", href: "https://linkedin.com/in/chamseddine-adaadour" },
+  { icon: Linkedin, label: "LinkedIn", handle: "chamseddine", href: "https://linkedin.com/in/chamsedd1ne" },
   { icon: Mail, label: "Email", handle: "contact@chams.dev", href: "mailto:contact@chams.dev" },
 ]
 
