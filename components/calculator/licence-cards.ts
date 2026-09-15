@@ -53,12 +53,10 @@ export function licenceCards(annee: Annee, anneeIdx: number, semIdx: number): Ue
             statut,
             compensation,
             cible,
-            notes: elements.map(({ ec, ueIdx, ecIdx }) => ({
-                id: `${anneeIdx}:${semIdx}:${compIdx}:${ueIdx}:${ecIdx}`,
-                label: ec.name,
-                coef: ec.ects,
-                value: ec.note ?? null,
-            })),
+            notes: elements.map(({ ec, ueIdx, ecIdx }) => {
+                const id = `${anneeIdx}:${semIdx}:${compIdx}:${ueIdx}:${ecIdx}`
+                return { id, label: ec.name, coef: ec.ects, champs: [{ id, value: ec.note ?? null }] }
+            }),
         }
     })
 }

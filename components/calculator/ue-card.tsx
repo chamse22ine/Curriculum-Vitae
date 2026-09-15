@@ -1,5 +1,6 @@
 "use client"
 
+import type { CSSProperties } from "react"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { fmt2 } from "@/lib/format"
@@ -8,15 +9,23 @@ import { NoteField } from "@/components/calculator/note-field"
 export type Bloc = "c1" | "c2" | "c3" | "c4" | "c5"
 export type Statut = "acquis" | "compense" | "non-acquis" | "attente"
 
+export type ChampNote = {
+    id: string
+    /** Affiché au-dessus du champ quand la matière en a plusieurs (CC, EX1…) */
+    label?: string
+    value: number | null
+    locked?: boolean
+    /** Note de session 2 pronostiquée */
+    hypothese?: boolean
+}
+
+/** Une ligne par matière, avec un ou plusieurs champs de saisie */
 export type Note = {
     id: string
     label: string
     meta?: string
     coef?: number
-    value: number | null
-    locked?: boolean
-    /** Note de session 2 pronostiquée */
-    hypothese?: boolean
+    champs: ChampNote[]
     report?: { checked: boolean; enabled: boolean; hint: string }
 }
 
@@ -103,17 +112,18 @@ export function UeCard({
                 </div>
             </header>
 
-            <ul className="divide-y divide-hairline/50">
+            {/* --champs : nombre maximal de champs par matière, pour aligner la colonne de saisie */}
+            <ul className="divide-y divide-hairline/50" style={{ "--champs": Math.max(1, ...notes.map((n) => n.champs.length)) } as CSSProperties}>
                 {notes.map((n) => (
                     <li
                         key={n.id}
                         className={cn(
-                            "grid grid-cols-[minmax(0,1fr)_2.25rem_4.75rem] items-center gap-2 px-3 sm:grid-cols-[minmax(0,1fr)_3.5rem_5.5rem] sm:gap-3 sm:px-4",
+                            "grid grid-cols-[minmax(0,1fr)_2.25rem_4.75rem] items-center gap-2 px-3 sm:grid-cols-[minmax(0,1fr)_3.5rem_calc(var(--champs)*5.5rem_+_(var(--champs)_-_1)*0.5rem)] sm:gap-x-3 sm:px-4",
                             dense ? "py-2" : "py-3"
                         )}
                     >
                         <div className="min-w-0">
-                            <label htmlFor={`n-${n.id}`} className="line-clamp-2 text-ui text-ink">{n.label}</label>
+                            <label htmlFor={`n-${n.champs[0]?.id}`} className="line-clamp-2 text-ui text-ink">{n.label}</label>
                             {n.meta ? <span className="num block truncate text-caption text-ink-muted" title={n.meta}>{n.meta}</span> : null}
                             {n.report ? (
                                 <label className={cn("mt-1 flex items-center gap-1.5 text-caption", n.report.enabled ? "cursor-pointer text-ink-soft" : "text-ink-muted")}>
@@ -129,15 +139,23 @@ export function UeCard({
                             ) : null}
                         </div>
                         <span className="num text-right text-caption text-ink-muted">{n.coef != null ? `×${n.coef}` : ""}</span>
-                        <NoteField
-                            id={n.id}
-                            label={n.label}
-                            value={n.value}
-                            disabled={n.locked}
-                            hypothese={n.hypothese}
-                            onCommit={(value) => onNoteChange(n.id, value)}
-                            onEdge={onEdge}
-                        />
+                        {/* Plusieurs champs : sur mobile ils passent sous le nom de la matière */}
+                        <div className={cn("flex items-end justify-end gap-2", n.champs.length > 1 && "col-span-3 sm:col-span-1")}>
+                            {n.champs.map((champ) => (
+                                <div key={champ.id} className="flex w-[4.75rem] flex-col gap-1 sm:w-[5.5rem]">
+                                    {champ.label ? <span className="num text-right text-caption text-ink-muted" aria-hidden>{champ.label}</span> : null}
+                                    <NoteField
+                                        id={champ.id}
+                                        label={champ.label ? `${n.label} · ${champ.label}` : n.label}
+                                        value={champ.value}
+                                        disabled={champ.locked}
+                                        hypothese={champ.hypothese}
+                                        onCommit={(value) => onNoteChange(champ.id, value)}
+                                        onEdge={onEdge}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </li>
                 ))}
             </ul>
