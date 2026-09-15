@@ -1,0 +1,63 @@
+/* Calendrier SVAR habillé en Papier & Signal : les tokens suivent seuls le thème clair ou sombre */
+
+.hr-calendrier .wx-theme {
+  height: 100%;
+}
+
+.hr-calendrier .wx-willow-theme {
+  --wx-color-primary: var(--primary);
+  --wx-color-primary-selected: var(--accent-wash);
+  --wx-color-primary-font: var(--on-primary);
+  --wx-color-secondary-hover: var(--surface-sunk);
+  --wx-color-danger: var(--danger);
+  --wx-color-link: var(--accent);
+  --wx-color-font: var(--ink);
+  --wx-color-font-alt: var(--ink-muted);
+  --wx-color-font-disabled: var(--hairline-strong);
+  --wx-color-disabled: var(--surface-sunk);
+  --wx-background: var(--surface);
+  --wx-background-alt: var(--surface-sunk);
+  --wx-background-hover: var(--surface-sunk);
+  --wx-border-color: var(--hairline);
+  --wx-border-medium: 1px solid var(--hairline);
+  --wx-icon-color: var(--ink-muted);
+  --wx-button-pressed: var(--hairline);
+  --wx-button-primary-pressed: var(--primary-hover);
+  --wx-button-box-shadow: none;
+  --wx-button-primary-box-shadow: none;
+  --wx-input-border-focus: 1px solid var(--accent);
+  --wx-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --wx-shadow-light: var(--shadow-float);
+  --wx-shadow-medium: var(--shadow-lift);
+  --wx-box-shadow: var(--shadow-float);
+  --wx-box-shadow-strong: var(--shadow-lift);
+  --wx-calendar-grid-color: var(--hairline);
+  --wx-calendar-weekend-background: var(--surface-sunk);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* Téléphone : la barre du jour remplace la barre d'outils SVAR, trop étroite pour afficher la date */
+.hr-calendrier.hr-compact .wx-navigation {
+  display: none;
+}
+
+.hr-calendrier.hr-compact .wx-willow-theme {
+  --wx-calendar-y-scale-width: 48px;
+}
+
+/* Une couleur par catégorie, posée par eventCss */
+.hr-calendrier .hr-entreprise { --hr-couleur: var(--c1); }
+.hr-calendrier .hr-cours { --hr-couleur: var(--c2); }
+.hr-calendrier .hr-bu { --hr-couleur: var(--c5); }
+
+.hr-calendrier :is(.wx-box-event, .wx-bar-event):is(.hr-entreprise, .hr-cours, .hr-bu) {
+  background-color: color-mix(in srgb, var(--hr-couleur) 20%, var(--surface));
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--hr-couleur);
+}
+
+.hr-calendrier :is(.wx-box-event, .wx-bar-event):is(.hr-entreprise, .hr-cours, .hr-bu):hover {
+  opacity: 1;
+  background-color: color-mix(in srgb, var(--hr-couleur) 32%, var(--surface));
+}

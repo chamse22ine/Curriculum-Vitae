@@ -69,10 +69,13 @@ function Hero() {
         >
           Grade calculator
         </Link>
+        <Link
+          href="/hours"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-hairline-strong bg-surface px-5 text-ui font-medium text-primary transition-colors duration-100 ease-out-ui hover:border-primary"
+        >
+          Hours tracker
+        </Link>
       </div>
-      <p className="num mt-8 text-caption text-ink-muted">
-        <span className="text-success" aria-hidden>●</span> Looking for a Data Science internship
-      </p>
     </section>
   )
 }
