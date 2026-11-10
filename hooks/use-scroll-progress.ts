@@ -12,23 +12,22 @@ export interface ScrollProgress {
   t: number
 }
 
-/**
- * Longueur de la transition entre deux sections, en fraction de la hauteur d'écran.
- * Le prototype utilise 0,5 (ordinateur) et 0,3 (mobile) ; allongée pour une bascule plus douce.
- * Le point de bascule de la section active (milieu de la transition) ne change pas.
- */
-const SPAN_DESKTOP = 0.85
-const SPAN_MOBILE = 0.45
+/** Longueur de la transition entre deux sections, en fraction de la hauteur d'écran (valeurs du prototype) */
+const SPAN_DESKTOP = 0.65
+const SPAN_MOBILE = 0.3
+/** Ligne de référence : milieu de l'écran sur ordinateur, plus bas sur mobile (sous la scène) */
+const REF_DESKTOP = 0.5
+const REF_MOBILE = 0.58
 
 /**
  * Indice flottant de la section qui croise la ligne de référence
- * (50 % de la hauteur sur ordinateur, 62 % sur mobile, sous la scène).
- * Reprise de progress() dans design/prototype-chams.html (seule la longueur de transition change).
+ * (50 % de la hauteur sur ordinateur, 58 % sur mobile, sous la scène).
+ * Reprise de progress() dans design/prototype-chams.html.
  */
 export function computeProgress(tops: readonly number[], scrollY: number, width: number, height: number): ScrollProgress {
   if (tops.length < 2) return { k: 0, t: 0 }
   const mobile = width <= MOBILE_MAX
-  const y = scrollY + height * (mobile ? 0.62 : 0.5)
+  const y = scrollY + height * (mobile ? REF_MOBILE : REF_DESKTOP)
   const span = height * (mobile ? SPAN_MOBILE : SPAN_DESKTOP)
   let f = 0
   for (let i = 1; i < tops.length; i++) {
