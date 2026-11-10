@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useRef, type MouseEvent, type ReactNode } from "react"
+import { useCallback, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react"
 import { SECTIONS } from "@/content/sections"
 import { paletteStyle } from "@/components/sections/section"
 import { useScrollProgress } from "@/hooks/use-scroll-progress"
 import { homeFontVariables } from "@/lib/home-fonts"
+import { HomeScene } from "@/components/scene"
 import { HomeContext } from "./home-context"
 import { HomeHeader } from "./home-header"
 import { Hud } from "./hud"
@@ -17,6 +18,9 @@ export function HomeShell({ children }: Readonly<{ children: ReactNode }>) {
   const root = useRef<HTMLDivElement>(null)
   const { active, progress } = useScrollProgress(root)
   const value = useMemo(() => ({ active, progress }), [active, progress])
+  // Passe à "on" quand WebGL a démarré : le fond CSS de repli s'efface derrière le canvas
+  const [sceneOn, setSceneOn] = useState(false)
+  const onSceneReady = useCallback(() => setSceneOn(true), [])
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
@@ -33,10 +37,11 @@ export function HomeShell({ children }: Readonly<{ children: ReactNode }>) {
       <div
         ref={root}
         className={`home ${homeFontVariables}`}
-        data-scene="off"
+        data-scene={sceneOn ? "on" : "off"}
         style={paletteStyle(SECTIONS[active].palette)}
         onClick={onClick}
       >
+        <HomeScene progress={progress} onReady={onSceneReady} />
         <HomeHeader />
         {children}
         <Hud />
