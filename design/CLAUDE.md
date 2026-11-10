@@ -61,6 +61,9 @@ Huit sections, dans cet ordre : Accueil, Web, Data, IA / MLOps, DevOps, Projets,
 
 ## Points à respecter
 
+- Bascule de la scène adoucie par rapport au prototype (demandé le 2026-11-10) : transition sur
+  0,85 de hauteur d'écran (0,45 sur mobile) au lieu de 0,5 (0,3), amortissement indépendant de la
+  fréquence d'affichage (0,035 par image à 60 i/s au lieu de 0,07 / 0,06 par image).
 - Mobile (≤ 820 px) : la scène est fixée dans les 43 % supérieurs de l'écran, masquée en fondu
   vers le bas, et la page défile dessous. Menu en barre horizontale défilante. Pas de défilement
   horizontal de la page.

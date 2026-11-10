@@ -29,6 +29,15 @@ import type { ScreenEnv } from "./screens/types"
 const LEGACY_LIGHT = Math.PI
 
 const SIDES = SECTIONS.map((s) => s.side)
+
+/**
+ * Amortissement indépendant de la fréquence d'affichage : `rate` est la part du chemin parcourue
+ * par image à 60 i/s. Le prototype appliquait 0,07 (côté, couleurs) et 0,06 (rotation) par image,
+ * donc deux fois plus vite sur un écran à 120 Hz ; ralenti ici pour une bascule moins brutale.
+ */
+const DAMP_SIDE = 0.035
+const DAMP_ROTATION = 0.035
+const damp = (rate: number, dt: number) => 1 - Math.pow(1 - rate, dt * 60)
 const HALF_FOV_TAN = Math.tan(MathUtils.degToRad(22.5))
 
 interface SceneProps {
@@ -124,7 +133,7 @@ function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; la
   }, [])
 
   // Boucle d'animation : reprise de frame() dans design/prototype-chams.html
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const m = motion.current
     const r = rig.current
     const p = phone.current
@@ -132,7 +141,9 @@ function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; la
     const clock = state.clock.elapsedTime
     const time = reduce ? 4 : clock
     const { k, t } = progress()
-    const e = reduce ? 1 : 0.07
+    const dt = Math.min(delta, 0.1) // évite un saut après un onglet en arrière-plan
+    const e = reduce ? 1 : damp(DAMP_SIDE, dt)
+    const er = damp(DAMP_ROTATION, dt)
     const { width: w, height: h } = state.size
 
     uniforms.uTime.value = time
@@ -157,10 +168,10 @@ function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; la
       uniforms.uSide.value = 0
     }
     r.scale.setScalar(sc)
-    r.rotation.y += ((wide ? -m.side * 0.42 + m.mx * 0.35 : reduce ? 0 : Math.sin(time * 0.45) * 0.2) - r.rotation.y) * 0.06
-    r.rotation.x += (0.24 + m.my * 0.2 - r.rotation.x) * 0.06
+    r.rotation.y += ((wide ? -m.side * 0.42 + m.mx * 0.35 : reduce ? 0 : Math.sin(time * 0.45) * 0.2) - r.rotation.y) * er
+    r.rotation.x += (0.24 + m.my * 0.2 - r.rotation.x) * er
 
-    m.open += ((clock > 0.7 ? 1.87 : 0) - m.open) * (reduce ? 1 : 0.045)
+    m.open += ((clock > 0.7 ? 1.87 : 0) - m.open) * (reduce ? 1 : damp(0.045, dt))
     if (lid.current) lid.current.rotation.x = -m.open
 
     p.position.set(sx * 1.8, 0.1 + (reduce ? 0 : Math.sin(time * 1.1) * 0.06), 0.75)

@@ -36,6 +36,9 @@ export const appGit: ScreenApp = (x, t, { fonts: { sans: SANS, mono: MONO } }) =
       const g = GIT[i]
       let X = 40
       x.font = f
+      // La date de la ligne précédente est alignée à droite : sans ce retour à gauche, les messages
+      // sortent de l'écran (bug du prototype, invisible en mouvement réduit où le log est vide)
+      x.textAlign = "left"
       x.fillStyle = "#7a5cff"
       x.fillText(g[0], X, y)
       X += g[0].length * cw
