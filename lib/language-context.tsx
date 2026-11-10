@@ -1,7 +1,20 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
 import { translations, type Language } from "./translations"
+
+/** Clé localStorage (inchangée depuis la première version du site) */
+export const LANGUAGE_KEY = "language"
+
+/** Pages dont le contenu suit la langue choisie. /calculator et /hours restent en français. */
+const LOCALIZED_PATHS = new Set(["/"])
+
+/**
+ * Script inline exécuté avant le premier rendu : pose data-lang (et lang sur les pages localisées)
+ * sur <html> depuis localStorage, pour que le CSS affiche la bonne langue sans flash.
+ */
+export const LANGUAGE_BOOT_SCRIPT = `(function(){try{var l=localStorage.getItem(${JSON.stringify(LANGUAGE_KEY)})==="en"?"en":"fr",d=document.documentElement;d.setAttribute("data-lang",l);if(${JSON.stringify([...LOCALIZED_PATHS])}.indexOf(location.pathname)>-1)d.setAttribute("lang",l)}catch(e){}})()`
 
 interface LanguageContextType {
     language: Language
@@ -11,22 +24,40 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-    const [language, setLanguageState] = useState<Language>(() => {
-        if (typeof window === "undefined") return "fr"
-        const savedLanguage = localStorage.getItem("language") as Language | null
-        if (savedLanguage === "fr" || savedLanguage === "en") return savedLanguage
-        return "fr"
-    })
-
-    const setLanguage = (lang: Language) => {
-        setLanguageState(lang)
-        localStorage.setItem("language", lang)
+// La source de vérité est l'attribut data-lang de <html> : le script de démarrage l'initialise,
+// setLanguage le modifie, et React s'y abonne.
+const listeners = new Set<() => void>()
+const subscribe = (cb: () => void) => {
+    listeners.add(cb)
+    return () => {
+        listeners.delete(cb)
     }
+}
+const readLanguage = (): Language => (document.documentElement.getAttribute("data-lang") === "en" ? "en" : "fr")
+const serverLanguage = (): Language => "fr"
 
-    const t = translations[language]
+export function LanguageProvider({ children }: { children: ReactNode }) {
+    const language = useSyncExternalStore(subscribe, readLanguage, serverLanguage)
+    const pathname = usePathname()
 
-    return <LanguageContext.Provider value={{ language, setLanguage, t }}>{children}</LanguageContext.Provider>
+    // lang de <html> : la langue choisie sur les pages localisées, le français ailleurs
+    useEffect(() => {
+        document.documentElement.setAttribute("lang", LOCALIZED_PATHS.has(pathname) ? language : "fr")
+    }, [language, pathname])
+
+    const setLanguage = useCallback((lang: Language) => {
+        try {
+            localStorage.setItem(LANGUAGE_KEY, lang)
+        } catch {
+            // stockage indisponible (navigation privée) : la langue vaut pour la session
+        }
+        document.documentElement.setAttribute("data-lang", lang)
+        listeners.forEach((l) => l())
+    }, [])
+
+    const value = useMemo(() => ({ language, setLanguage, t: translations[language] }), [language, setLanguage])
+
+    return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {

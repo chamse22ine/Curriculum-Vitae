@@ -11,9 +11,10 @@ export const unbounded = Unbounded({
   display: "swap",
 })
 
+// Police variable (400–700) : un seul fichier. Avec des graisses fixes, Turbopack échoue
+// (« next/font/google queries have exactly one entry ») à cause de l'axe de largeur.
 export const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   variable: "--font-instrument-sans",
   display: "swap",
 })
