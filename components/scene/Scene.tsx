@@ -16,6 +16,7 @@ import { Phone } from "./Phone"
 import { sceneFontsReady } from "./fonts"
 import { createPainter, createScreens } from "./screens"
 import { LAPTOP_APPS } from "./screens/laptop"
+import { PHONE_APPS } from "./screens/phone"
 import type { ScreenEnv } from "./screens/types"
 
 /*
@@ -168,6 +169,7 @@ function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; la
     painter.setActive(activeIndex({ k, t }), clock)
     if (fontsReady.current && (tick.current++ & 1) === 0) {
       painter.paint(screens.laptop, LAPTOP_APPS, clock, env.current)
+      painter.paint(screens.phone, PHONE_APPS, clock, env.current)
     }
   })
 
