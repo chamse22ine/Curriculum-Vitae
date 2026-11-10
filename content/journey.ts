@@ -18,11 +18,6 @@ export const JOURNEY: readonly JourneyItem[] = [
     },
   },
   {
-    when: "2026 → 2028",
-    title: { fr: "Université d'Artois, Master Informatique", en: "University of Artois, CS Master's" },
-    detail: { fr: "En alternance chez Decathlon Digital.", en: "As an apprentice at Decathlon Digital." },
-  },
-  {
     when: { fr: "Mars → sept. 2026", en: "Mar → Sep 2026" },
     title: { fr: "Stage Software Engineer, Decathlon Digital", en: "Software Engineer intern, Decathlon Digital" },
     detail: "Villeneuve-d'Ascq.",
