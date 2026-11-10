@@ -2,17 +2,21 @@
 
 import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
-import { Color, HemisphereLight, MathUtils, type Group } from "three"
+import { Color, HemisphereLight, MathUtils, type Group, type Mesh, type MeshStandardMaterial } from "three"
 import { PALETTES, SECTIONS } from "@/content/sections"
-import type { ScrollProgress } from "@/hooks/use-scroll-progress"
-import { MOBILE_MAX } from "@/hooks/use-scroll-progress"
+import { activeIndex, MOBILE_MAX, type ScrollProgress } from "@/hooks/use-scroll-progress"
+import type { Lang } from "@/content/types"
+import { useLanguage } from "@/lib/language-context"
 import { homeFonts } from "@/lib/home-fonts"
 import { Background, createBackgroundUniforms } from "./Background"
 import { buildStudioEnvironment } from "./environment"
 import { Laptop } from "./Laptop"
 import { createMaterials } from "./materials"
 import { Phone } from "./Phone"
-import { createScreens } from "./screens"
+import { sceneFontsReady } from "./fonts"
+import { createPainter, createScreens } from "./screens"
+import { LAPTOP_APPS } from "./screens/laptop"
+import type { ScreenEnv } from "./screens/types"
 
 /*
  * Fidélité des couleurs avec le prototype (three r128) :
@@ -22,12 +26,6 @@ import { createScreens } from "./screens"
  * - lumières × π : r128 utilisait les lumières « legacy » qui multipliaient l'éclairement par π.
  */
 const LEGACY_LIGHT = Math.PI
-/**
- * Le PMREM de r187 ne répartit pas l'énergie comme celui de r128 : à environnement identique,
- * l'aluminium sortait ~15 % plus sombre. 1,4 a été étalonné par capture contre le prototype
- * (luminosité moyenne de la base du portable : 86/91/124 dans le prototype, 83/93/122 ici).
- */
-const ENV_INTENSITY = 1.4
 
 const SIDES = SECTIONS.map((s) => s.side)
 const HALF_FOV_TAN = Math.tan(MathUtils.degToRad(22.5))
@@ -37,7 +35,7 @@ interface SceneProps {
   onReady: () => void
 }
 
-function World({ progress }: Readonly<{ progress: () => ScrollProgress }>) {
+function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; lang: Lang }>) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const reduce = useMemo(() => matchMedia("(prefers-reduced-motion: reduce)").matches, [])
@@ -52,15 +50,47 @@ function World({ progress }: Readonly<{ progress: () => ScrollProgress }>) {
   useEffect(() => () => materials.dispose(), [materials])
   useEffect(() => () => screens.dispose(), [screens])
 
-  // Reflets : studio PMREM, ou à défaut métal atténué + lumière hémisphérique (comme le prototype)
+  // Écrans : un état commun (app courante + fondu), redessinés une image sur deux,
+  // et seulement une fois les polices chargées
+  const painter = useMemo(() => createPainter(LAPTOP_APPS.length, reduce), [reduce])
+  const env = useRef<ScreenEnv>({ lang, palettes: PALETTES, fonts: homeFonts })
+  useEffect(() => {
+    env.current.lang = lang
+  }, [lang])
+  const fontsReady = useRef(false)
+  const tick = useRef(0)
+  useEffect(() => {
+    let alive = true
+    sceneFontsReady(homeFonts).then(() => {
+      if (alive) fontsReady.current = true
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Reflets : studio PMREM, ou à défaut métal atténué + lumière hémisphérique (comme le prototype).
+  // La carte est posée sur chaque matériau (et non via scene.environment) : depuis r163, three ignore
+  // material.envMapIntensity pour scene.environment, alors que le prototype règle ce reflet matériau
+  // par matériau (0,06 sur les écrans, 0,15 sur le noir, 0,5 sur les touches).
   useEffect(() => {
     try {
       const env = buildStudioEnvironment(gl)
-      scene.environment = env
-      scene.environmentIntensity = ENV_INTENSITY
+      const touched: MeshStandardMaterial[] = []
+      scene.traverse((o) => {
+        const m = (o as Mesh).material
+        if (m && (m as MeshStandardMaterial).isMeshStandardMaterial && !touched.includes(m as MeshStandardMaterial)) {
+          const sm = m as MeshStandardMaterial
+          sm.envMap = env
+          sm.needsUpdate = true
+          touched.push(sm)
+        }
+      })
       return () => {
-        scene.environment = null
-        scene.environmentIntensity = 1
+        touched.forEach((m) => {
+          m.envMap = null
+          m.needsUpdate = true
+        })
         env.dispose()
       }
     } catch {
@@ -134,6 +164,11 @@ function World({ progress }: Readonly<{ progress: () => ScrollProgress }>) {
 
     p.position.set(sx * 1.8, 0.1 + (reduce ? 0 : Math.sin(time * 1.1) * 0.06), 0.75)
     p.rotation.set(-0.06, -sx * 0.32, reduce ? 0 : Math.sin(time * 0.7) * 0.03)
+
+    painter.setActive(activeIndex({ k, t }), clock)
+    if (fontsReady.current && (tick.current++ & 1) === 0) {
+      painter.paint(screens.laptop, LAPTOP_APPS, clock, env.current)
+    }
   })
 
   return (
@@ -161,6 +196,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 
 export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
+  const { language } = useLanguage()
   return (
     <div className="home-field" aria-hidden="true">
       <SceneBoundary>
@@ -175,7 +211,7 @@ export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
             onReady()
           }}
         >
-          <World progress={progress} />
+          <World progress={progress} lang={language} />
         </Canvas>
       </SceneBoundary>
     </div>
