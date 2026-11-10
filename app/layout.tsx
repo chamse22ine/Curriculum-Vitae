@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { LanguageProvider } from "@/lib/language-context"
+import { LANGUAGE_BOOT_SCRIPT, LanguageProvider } from "@/lib/language-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
@@ -38,10 +38,14 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
+      data-lang="fr"
       data-scroll-behavior="smooth"
       className={`${serif.variable} ${sans.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: LANGUAGE_BOOT_SCRIPT }} />
+      </head>
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <LanguageProvider>{children}</LanguageProvider>
