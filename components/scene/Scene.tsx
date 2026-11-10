@@ -15,6 +15,7 @@ import { sceneFontsReady } from "./fonts"
 import { Interactions } from "./Interactions"
 import { LaptopRigs } from "./Laptop"
 import { createMaterials } from "./materials"
+import { Monitor } from "./Monitor"
 import { BigPhone } from "./Phone"
 import { paintScreens } from "./screens"
 import type { ScreenEnv } from "./screens/types"
@@ -168,6 +169,7 @@ function Objects({ lang }: Readonly<{ lang: Lang }>) {
     <>
       <LaptopRigs materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
       <BigPhone materials={materials} env={env} anisotropy={anisotropy} />
+      <Monitor materials={materials} env={env} anisotropy={anisotropy} />
       <Interactions />
     </>
   )

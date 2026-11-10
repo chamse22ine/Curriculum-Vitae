@@ -11,10 +11,10 @@ const BARS: [string, number, string][] = [
   ["Swim", 0.4, "#ff9a1f"],
 ]
 
-export const pKpi: ScreenApp = (x, t, { fonts: { sans: SANS, mono: MONO } }) => {
+export const pKpi: ScreenApp = (x, t, { fonts: { sans: SANS, mono: MONO }, bare }) => {
   x.fillStyle = "#1a0f0a"
   x.fillRect(0, 0, PW, PH)
-  pstat(x, "#ffffff", SANS)
+  pstat(x, "#ffffff", SANS, bare)
   tx(x, "Revenue · today", 24, 96, `500 15px ${SANS}`, "#d6b8a8")
   tx(x, `€${(128400 + Math.floor(t * 37)).toLocaleString("en-US")}`, 24, 146, `600 40px ${SANS}`, "#ffffff")
   rr(x, 24, 166, 92, 30, 15, "rgba(255,179,0,.18)")
@@ -43,5 +43,5 @@ export const pKpi: ScreenApp = (x, t, { fonts: { sans: SANS, mono: MONO } }) => 
     rr(x, 24, y + 12, 312, 10, 5, "#2e1b12")
     rr(x, 24, y + 12, Math.max(10, 312 * r[1] * ease((t - 0.3 - i * 0.15) / 0.8)), 10, 5, r[2])
   })
-  pbar(x, "#ffffff")
+  pbar(x, "#ffffff", bare)
 }
