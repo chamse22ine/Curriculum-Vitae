@@ -2,7 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react"
 import { usePathname } from "next/navigation"
-import { translations, type Language } from "./translations"
+import type { Lang } from "@/content/types"
+
+export type Language = Lang
 
 /** Clé localStorage (inchangée depuis la première version du site) */
 export const LANGUAGE_KEY = "language"
@@ -19,7 +21,6 @@ export const LANGUAGE_BOOT_SCRIPT = `(function(){try{var l=localStorage.getItem(
 interface LanguageContextType {
     language: Language
     setLanguage: (lang: Language) => void
-    t: typeof translations.fr
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
@@ -55,7 +56,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         listeners.forEach((l) => l())
     }, [])
 
-    const value = useMemo(() => ({ language, setLanguage, t: translations[language] }), [language, setLanguage])
+    const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage])
 
     return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
