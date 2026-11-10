@@ -1,32 +1,112 @@
 "use client"
 
-import { useEffect, useMemo, type Ref } from "react"
-import { Group, Mesh, type Texture } from "three"
+import { useEffect, useMemo } from "react"
+import { useFrame } from "@react-three/fiber"
+import { BoxGeometry, CylinderGeometry, Group, Mesh, TorusGeometry, type BufferGeometry, type Texture } from "three"
 import { rplane, slab } from "./geometry"
-import { glass, type Materials } from "./materials"
+import { applyEnv, glass, type Materials } from "./materials"
+import { ease } from "./screens/shared"
+import { PH, PW, screenCanvas, type Screen } from "./screens"
+import { pHours } from "./screens/phone/hours"
+import { pShop } from "./screens/phone/shop"
+import { FRAME, grab, useSceneState } from "./state"
 
-function buildPhone(mats: Materials, screen: Texture) {
-  const phone = new Group()
-  const bodyGeo = slab(0.8, 1.62, 0.07, 0.13)
-  phone.add(new Mesh(bodyGeo, mats.TITAN))
-  const screenGeo = rplane(0.74, 1.56, 0.11)
-  const screenMat = glass(screen)
-  const pscr = new Mesh(screenGeo, screenMat)
-  pscr.position.z = 0.0485
-  phone.add(pscr)
+/** Téléphone (makePhone du prototype) : coque mate, dalle, boutons, bloc photo à trois objectifs */
+export function buildPhone(mats: Materials, screen: Texture) {
+  const g = new Group()
+  g.name = "phone"
+  const geos: BufferGeometry[] = [
+    slab(0.8, 1.62, 0.07, 0.13),
+    rplane(0.74, 1.56, 0.11),
+    slab(0.36, 0.38, 0.02, 0.1, 0.008, 5),
+    new CylinderGeometry(0.062, 0.062, 0.02, 24),
+    new TorusGeometry(0.062, 0.008, 8, 24),
+  ]
+  const [bodyG, scrG, islG, lensG, ringG] = geos as [BufferGeometry, BufferGeometry, BufferGeometry, BufferGeometry, BufferGeometry]
+  g.add(new Mesh(bodyG, mats.PHONEM))
+  const screenMaterial = glass(screen)
+  const s = new Mesh(scrG, screenMaterial)
+  s.position.z = 0.0485
+  s.name = "pscr"
+  g.add(s)
+  for (const [x, y, h] of [[0.412, 0.28, 0.2], [-0.412, 0.38, 0.12], [-0.412, 0.2, 0.12]]) {
+    const bg = new BoxGeometry(0.014, h, 0.03)
+    geos.push(bg)
+    const m = new Mesh(bg, mats.PHONEM)
+    m.position.set(x, y, 0)
+    g.add(m)
+  }
+  const isl = new Mesh(islG, mats.PHONEM)
+  isl.position.set(-0.17, 0.53, -0.055)
+  g.add(isl)
+  for (const [x, y] of [[-0.25, 0.61], [-0.09, 0.61], [-0.17, 0.46]]) {
+    const c = new Mesh(lensG, mats.BLACK)
+    c.rotation.x = Math.PI / 2
+    c.position.set(x, y, -0.075)
+    g.add(c)
+    const r = new Mesh(ringG, mats.ALU)
+    r.position.set(x, y, -0.085)
+    g.add(r)
+  }
   return {
-    group: phone,
+    group: g,
+    screenMaterial,
     dispose() {
-      bodyGeo.dispose()
-      screenGeo.dispose()
-      screenMat.dispose()
+      geos.forEach((x) => x.dispose())
+      screenMaterial.dispose()
     },
   }
 }
 
-/** Téléphone en titane ; la scène pilote sa position via la ref du groupe */
-export function Phone({ materials, screen, ref }: Readonly<{ materials: Materials; screen: Texture; ref: Ref<Group> }>) {
-  const phone = useMemo(() => buildPhone(materials, screen), [materials, screen])
-  useEffect(() => () => phone.dispose(), [phone])
-  return <primitive ref={ref} object={phone.group} />
+/** Station du grand téléphone selon l'avancement du voyage (bigSt du prototype) */
+const bigStation = (F: number) => (F < 3.5 ? 1 : 6)
+
+/**
+ * Grand téléphone, en un seul exemplaire : boutique mobile (station 1, à droite du portable)
+ * puis suivi d'heures (station 6, à gauche). Échelle 1,3, écran dessiné ×2.
+ */
+export function BigPhone({ materials, env, anisotropy }: Readonly<{ materials: Materials; env: Texture | null; anisotropy: number }>) {
+  const s = useSceneState()
+  const dev = useMemo(() => {
+    const scr = screenCanvas(PW, PH, 2, anisotropy)
+    const phone = buildPhone(materials, scr.texture)
+    phone.group.scale.setScalar(1.3)
+    applyEnv(phone.group, env)
+    const st = { at: 1 }
+    const screen: Screen = { ...scr, material: phone.screenMaterial, where: () => st.at, app: (i) => (i === 1 ? pShop : pHours) }
+    const g = grab(phone.group)
+    g.act = () => {
+      g.ty += Math.PI * 2
+      g.hold = 0
+    }
+    return { phone, scr, screen, st, g }
+  }, [materials, env, anisotropy])
+
+  useEffect(() => {
+    s.screens.push(dev.screen)
+    s.grabs.push(dev.g)
+    return () => {
+      s.screens.splice(s.screens.indexOf(dev.screen), 1)
+      s.grabs.splice(s.grabs.indexOf(dev.g), 1)
+      dev.phone.group.removeFromParent()
+      dev.phone.dispose()
+      dev.scr.texture.dispose()
+    }
+  }, [s, dev])
+
+  useFrame(() => {
+    const at = bigStation(s.F)
+    dev.st.at = at
+    const parent = s.stations[at]
+    if (parent && dev.phone.group.parent !== parent) parent.add(dev.phone.group)
+    const { time, reduce } = s
+    const m = at === 1 ? 1 : -1
+    // Pivot d'arrivée : à l'étape 6 (q = 1 − ease(act × 1,2)) ; pour l'instant posé en place
+    const q = 1 - ease(1)
+    const p = dev.phone.group
+    p.position.set(m * 0.95, -0.05 + (reduce ? 0 : Math.sin(time * 0.9) * 0.06), 0.8)
+    p.rotation.set(-0.04 + dev.g.rx, -m * 0.3 - m * q * 5 + dev.g.ry, reduce ? 0 : Math.sin(time * 0.6) * 0.03)
+  }, FRAME.objects)
+
+  return null
 }

@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react"
-import { Color, MathUtils, type Group } from "three"
+import { Color, MathUtils, type Group, type Object3D } from "three"
+import type { Screen } from "./screens"
 import { PALETTES, SECTIONS } from "@/content/sections"
 
 /*
@@ -74,7 +75,30 @@ export function createSceneState(reduce: boolean) {
     startT: new Array<number>(NS).fill(0),
     /** Groupes des huit stations, posés par <Stations> */
     stations: new Array<Group | null>(NS).fill(null),
+    /** Écrans à redessiner (portables, téléphones, moniteur), enregistrés par chaque objet */
+    screens: [] as Screen[],
+    /** Objets qu'on peut saisir à la souris ou au doigt */
+    grabs: [] as Grab[],
   }
+}
+
+/**
+ * Objet saisissable (grab() du prototype) : glisser le fait tourner (rx, ry), relâché il revient
+ * vers ty au bout de 1,4 s ; un clic appelle `act` (par défaut : un tour complet).
+ */
+export interface Grab {
+  o: Object3D
+  rx: number
+  ry: number
+  ty: number
+  hold: number
+  /** Instant du dernier clic (animations déclenchées) */
+  kick: number
+  act?: (hit: Object3D) => void
+}
+
+export function grab(o: Object3D, act?: (hit: Object3D) => void): Grab {
+  return { o, rx: 0, ry: 0, ty: 0, hold: 0, kick: -9, act }
 }
 
 export type SceneState = ReturnType<typeof createSceneState>
@@ -89,6 +113,7 @@ export function useSceneState() {
 
 /*
  * Ordre des calculs dans une image (useFrame, priorités croissantes, toutes ≤ 0 pour laisser
- * R3F faire le rendu ; le bloom prendra la priorité 1) :
+ * R3F faire le rendu ; le bloom prendra la priorité 1) : pilote, caméra, stations, saisies,
+ * objets, puis dessin des écrans.
  */
-export const FRAME = { driver: -3, camera: -2, stations: -1 } as const
+export const FRAME = { driver: -5, camera: -4, stations: -3, grabs: -2, objects: -1, screens: 0 } as const

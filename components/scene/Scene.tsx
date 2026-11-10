@@ -1,12 +1,23 @@
 "use client"
 
-import { Component, useEffect, useMemo, type ReactNode } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
-import { Color, MathUtils } from "three"
+import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { Color, HemisphereLight, MathUtils } from "three"
 import { PALETTES } from "@/content/sections"
+import type { Lang } from "@/content/types"
 import { activeIndex, MOBILE_MAX, type ScrollProgress } from "@/hooks/use-scroll-progress"
+import { homeFonts } from "@/lib/home-fonts"
+import { useLanguage } from "@/lib/language-context"
 import { Background, createBackgroundUniforms, type BackgroundUniforms } from "./Background"
 import { CameraRig } from "./CameraRig"
+import { buildStudioEnvironment } from "./environment"
+import { sceneFontsReady } from "./fonts"
+import { Interactions } from "./Interactions"
+import { LaptopRigs } from "./Laptop"
+import { createMaterials } from "./materials"
+import { BigPhone } from "./Phone"
+import { paintScreens } from "./screens"
+import type { ScreenEnv } from "./screens/types"
 import { Stations } from "./Stations"
 import {
   createSceneState,
@@ -96,7 +107,73 @@ function Driver({ progress, uniforms }: Readonly<{ progress: () => ScrollProgres
   return null
 }
 
-function World({ progress }: Readonly<{ progress: () => ScrollProgress }>) {
+/**
+ * Objets des stations, avec leurs reflets (environnement PMREM, sans HDR externe) et le dessin
+ * de leurs écrans.
+ */
+function Objects({ lang }: Readonly<{ lang: Lang }>) {
+  const s = useSceneState()
+  const gl = useThree((st) => st.gl)
+  const scene = useThree((st) => st.scene)
+  const anisotropy = gl.capabilities.getMaxAnisotropy()
+  const env = useMemo(() => {
+    try {
+      return buildStudioEnvironment(gl)
+    } catch {
+      return null
+    }
+  }, [gl])
+  const materials = useMemo(() => createMaterials(), [])
+
+  useEffect(() => {
+    // Sans environnement : métal atténué et lumière hémisphérique, comme le prototype
+    if (env) return () => env.dispose()
+    materials.dullMetals()
+    const hemi = new HemisphereLight(0xffffff, 0x333344, 0.9 * Math.PI)
+    scene.add(hemi)
+    return () => {
+      scene.remove(hemi)
+      hemi.dispose()
+    }
+  }, [env, materials, scene])
+  useEffect(() => () => materials.dispose(), [materials])
+
+  // Écrans : dessinés une fois les polices chargées, une image sur deux
+  const screenEnv = useRef<ScreenEnv>({ lang, palettes: PALETTES, fonts: homeFonts })
+  useEffect(() => {
+    screenEnv.current.lang = lang
+  }, [lang])
+  const paint = useRef({ ready: false, tick: 0 })
+  useEffect(() => {
+    let alive = true
+    sceneFontsReady(homeFonts).then(() => {
+      if (alive) paint.current.ready = true
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+  useFrame(() => {
+    if (!paint.current.ready) return
+    paintScreens(
+      s.screens,
+      paint.current.tick++,
+      (st) => !!s.stations[st]?.visible,
+      (st) => (s.reduce ? 30 : s.clock - s.startT[st]),
+      screenEnv.current,
+    )
+  }, FRAME.screens)
+
+  return (
+    <>
+      <LaptopRigs materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
+      <BigPhone materials={materials} env={env} anisotropy={anisotropy} />
+      <Interactions />
+    </>
+  )
+}
+
+function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; lang: Lang }>) {
   const reduce = useMemo(() => matchMedia("(prefers-reduced-motion: reduce)").matches, [])
   const state = useMemo(() => createSceneState(reduce), [reduce])
   const uniforms = useMemo(() => createBackgroundUniforms(PALETTES[0]), [])
@@ -106,6 +183,7 @@ function World({ progress }: Readonly<{ progress: () => ScrollProgress }>) {
       <Background uniforms={uniforms} />
       <CameraRig uniforms={uniforms} />
       <Stations />
+      <Objects lang={lang} />
     </SceneStateContext.Provider>
   )
 }
@@ -132,6 +210,7 @@ function hasWebGL() {
 }
 
 export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
+  const { language } = useLanguage()
   // Composant chargé uniquement côté client (ssr: false) : le test peut se faire au rendu
   const webgl = useMemo(hasWebGL, [])
   if (!webgl) return null
@@ -150,7 +229,7 @@ export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
             onReady()
           }}
         >
-          <World progress={progress} />
+          <World progress={progress} lang={language} />
         </Canvas>
       </SceneBoundary>
     </div>
