@@ -7,7 +7,7 @@ export interface JourneyItem {
   detail: Text
 }
 
-// Dates confirmées le 2026-11-10, sauf la fin du Master (voir ci-dessous).
+// Dates confirmées le 2026-11-10.
 export const JOURNEY: readonly JourneyItem[] = [
   {
     when: { fr: "Sept. 2026 → sept. 2028", en: "Sep 2026 → Sep 2028" },
@@ -18,8 +18,7 @@ export const JOURNEY: readonly JourneyItem[] = [
     },
   },
   {
-    // À CONFIRMER : la date de fin donnée était « 2026 → 2026 ». Affichée ouverte en attendant.
-    when: "2026 →",
+    when: "2026 → 2028",
     title: { fr: "Université d'Artois, Master Informatique", en: "University of Artois, CS Master's" },
     detail: { fr: "En alternance chez Decathlon Digital.", en: "As an apprentice at Decathlon Digital." },
   },
