@@ -197,8 +197,21 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
+/** WebGL disponible ? Testé avant de monter le Canvas, pour ne pas provoquer d'erreur en console */
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas")
+    return !!(c.getContext("webgl2") || c.getContext("webgl"))
+  } catch {
+    return false
+  }
+}
+
 export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
   const { language } = useLanguage()
+  // Composant chargé uniquement côté client (ssr: false) : le test peut se faire au rendu
+  const webgl = useMemo(hasWebGL, [])
+  if (!webgl) return null
   return (
     <div className="home-field" aria-hidden="true">
       <SceneBoundary>
