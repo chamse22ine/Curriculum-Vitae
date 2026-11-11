@@ -4,6 +4,9 @@ import { useEffect, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
 import { BoxGeometry, Group, Mesh, type BufferGeometry, type Texture } from "three"
 import { MOBILE_MAX } from "@/hooks/use-scroll-progress"
+import type { HomeFonts } from "@/lib/home-fonts"
+import { brandLogo } from "./brand"
+import { sceneFontsReady } from "./fonts"
 import { rplane, slab } from "./geometry"
 import { applyEnv, glass, type Materials } from "./materials"
 import { LH, LW, screenCanvas, type Screen } from "./screens"
@@ -20,7 +23,12 @@ const SH = 1.616
  * Moniteur de bureau sur pied (makePanel + pied du prototype) : dos en titane, bordure noire,
  * dalle, cou et pied en aluminium. Au clic, il fait un tour complet.
  */
-export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Materials; env: Texture | null; anisotropy: number }>) {
+export function Monitor({
+  materials,
+  env,
+  anisotropy,
+  fonts,
+}: Readonly<{ materials: Materials; env: Texture | null; anisotropy: number; fonts: HomeFonts }>) {
   const s = useSceneState()
 
   const dev = useMemo(() => {
@@ -45,6 +53,11 @@ export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Ma
     foot.rotation.x = -Math.PI / 2
     foot.position.set(0, -1.47, 0.05)
     g.add(foot)
+    // Logo au dos, au-dessus du cou
+    const brand = brandLogo(0.9, anisotropy)
+    brand.mesh.rotation.y = Math.PI
+    brand.mesh.position.set(0, 0.3, -0.024)
+    g.add(brand.mesh)
     applyEnv(g, env)
 
     const screen: Screen = { ...scr, material: screenMaterial, where: () => STATION, app: () => appDash }
@@ -57,9 +70,11 @@ export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Ma
       g,
       screen,
       gr,
+      drawText: brand.draw,
       dispose() {
         g.removeFromParent()
         geos.forEach((x) => x.dispose())
+        brand.dispose()
         screenMaterial.dispose()
         scr.texture.dispose()
       },
@@ -67,14 +82,17 @@ export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Ma
   }, [materials, env, anisotropy])
 
   useEffect(() => {
+    let alive = true
+    sceneFontsReady(fonts).then(() => alive && dev.drawText(fonts))
     s.screens.push(dev.screen)
     s.grabs.push(dev.gr)
     return () => {
+      alive = false
       s.screens.splice(s.screens.indexOf(dev.screen), 1)
       s.grabs.splice(s.grabs.indexOf(dev.gr), 1)
       dev.dispose()
     }
-  }, [s, dev])
+  }, [s, dev, fonts])
 
   useFrame(() => {
     const parent = s.stations[STATION]

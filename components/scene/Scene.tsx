@@ -172,8 +172,8 @@ function Objects({ lang }: Readonly<{ lang: Lang }>) {
   return (
     <>
       <LaptopRigs materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
-      <BigPhone materials={materials} env={env} anisotropy={anisotropy} />
-      <Monitor materials={materials} env={env} anisotropy={anisotropy} />
+      <BigPhone materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
+      <Monitor materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
       <Chip materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
       <Rack materials={materials} env={env} anisotropy={anisotropy} fonts={homeFonts} />
       <Interactions />

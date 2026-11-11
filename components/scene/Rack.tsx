@@ -16,6 +16,7 @@ import {
 } from "three"
 import type { HomeFonts } from "@/lib/home-fonts"
 import { sceneFontsReady } from "./fonts"
+import { brandLogo } from "./brand"
 import { canvasTexture, mkCanvas } from "./geometry"
 import { applyEnv, type Materials } from "./materials"
 import { ease, rr, tx } from "./screens/shared"
@@ -182,6 +183,12 @@ export function Rack({
       return u
     })
 
+    // Logo sur la face arrière, entre les montants
+    const brand = brandLogo(1.2, anisotropy)
+    brand.mesh.rotation.y = Math.PI
+    brand.mesh.position.set(0, RH / 2 - 0.55, -(RD / 2) + 0.009)
+    rack.add(brand.mesh)
+
     rack.position.set(-1.2, 0, -0.4)
     rack.scale.setScalar(0.9)
     applyEnv(rack, env)
@@ -199,12 +206,16 @@ export function Rack({
       leds,
       strips,
       gr,
-      drawText: (f: HomeFonts) => units.forEach((u) => drawUnit(u, f.mono)),
+      drawText: (f: HomeFonts) => {
+        units.forEach((u) => drawUnit(u, f.mono))
+        brand.draw(f)
+      },
       dispose() {
         rack.removeFromParent()
         geos.forEach((g) => g.dispose())
         mats.forEach((m) => m.dispose())
         units.forEach((u) => u.tex.dispose())
+        brand.dispose()
       },
     }
   }, [materials, env, anisotropy, s])
