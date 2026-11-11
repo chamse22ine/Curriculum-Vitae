@@ -206,6 +206,7 @@ export function Rack({
       leds,
       strips,
       gr,
+      light: brand.light,
       drawText: (f: HomeFonts) => {
         units.forEach((u) => drawUnit(u, f.mono))
         brand.draw(f)
@@ -243,6 +244,7 @@ export function Rack({
     const tt = s.reduce ? CYCLE - 0.5 : (clock - s.startT[STATION]) % CYCLE
     // À l'arrivée, les serveurs s'enfichent un par un, de haut en bas
     const a = s.act[STATION]
+    dev.light(a, clock, s.reduce)
     dev.units.forEach((u, j) => {
       const pull = Math.sin(Math.PI * Math.min(1, Math.max(0, (clock - u.kick) / 1.5)))
       u.g.position.z = (1 - ease(a * 1.9 - j * 0.09)) * 1.4 + pull * 0.75

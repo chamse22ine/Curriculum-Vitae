@@ -60,6 +60,7 @@ export function buildPhone(mats: Materials, screen: Texture, anisotropy = 1) {
     group: g,
     screenMaterial,
     drawText: brand.draw,
+    brand,
     dispose() {
       geos.forEach((x) => x.dispose())
       screenMaterial.dispose()
@@ -122,6 +123,7 @@ export function BigPhone({
     // À l'arrivée, le téléphone pivote sur lui-même avant de se poser (q : 1 → 0)
     const q = 1 - ease(s.act[at] * 1.2)
     const p = dev.phone.group
+    dev.phone.brand.light(s.act[at], s.clock, reduce)
     p.position.set(m * 0.95, -0.05 + (reduce ? 0 : Math.sin(time * 0.9) * 0.06), 0.8)
     p.rotation.set(-0.04 + dev.g.rx, -m * 0.3 - m * q * 5 + dev.g.ry, reduce ? 0 : Math.sin(time * 0.6) * 0.03)
   }, FRAME.objects)

@@ -71,6 +71,7 @@ export function Monitor({
       screen,
       gr,
       drawText: brand.draw,
+      light: brand.light,
       dispose() {
         g.removeFromParent()
         geos.forEach((x) => x.dispose())
@@ -101,6 +102,7 @@ export function Monitor({
     if (!parent?.visible) return
     // À l'arrivée, le moniteur glisse depuis la droite en pivotant (q : 1 → 0)
     const q = 1 - ease(s.act[STATION] * 1.3)
+    dev.light(s.act[STATION], s.clock, s.reduce)
     dev.g.position.set(1.05 + q * 3.5, 0.75, -0.9)
     dev.g.rotation.set(dev.gr.rx, -0.3 - q * 0.8 + dev.gr.ry, 0)
   }, FRAME.objects)

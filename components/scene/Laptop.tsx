@@ -20,7 +20,7 @@ import type { HomeFonts } from "@/lib/home-fonts"
 import { sceneFontsReady } from "./fonts"
 import { canvasTexture, mkCanvas, rplane, slab } from "./geometry"
 import { applyEnv, glass, type Materials } from "./materials"
-import { brandLogo } from "./brand"
+import { brandLogo, type BrandLight } from "./brand"
 import { buildPhone } from "./Phone"
 import { KP, LH, LW, PH, PW, screenCanvas, type Screen } from "./screens"
 import { LAPTOP_APPS } from "./screens/laptop"
@@ -188,7 +188,7 @@ function buildLaptop(mats: Materials, screen: Texture, anisotropy: number) {
     brand.dispose()
   }
 
-  return { group: laptop, screenMaterial: lscr.material as MeshStandardMaterial, drawText, dispose }
+  return { group: laptop, screenMaterial: lscr.material as MeshStandardMaterial, drawText, brand, dispose }
 }
 
 /**
@@ -222,6 +222,9 @@ interface Rig {
   open: number
   gl: Grab
   gp: Grab
+  /** Allumage des logos du portable et du petit téléphone */
+  lapLight: BrandLight
+  phoneLight: BrandLight
 }
 
 /**
@@ -263,6 +266,9 @@ export function LaptopRigs({
       extra.push(ls.texture, ps.texture, lmat, pmat)
       const lap = group.getObjectByName("laptop")!
       const phone = group.getObjectByName("phone")!
+      // Le clone partage les matériaux : ses logos reçoivent leur propre lumière
+      const lapLight = n ? lapA.brand.adopt(lap.getObjectByName("brand") as Mesh) : lapA.brand.light
+      const phoneLight = n ? phA.brand.adopt(phone.getObjectByName("brand") as Mesh) : phA.brand.light
       const rig: Rig = {
         group,
         lid: group.getObjectByName("lid")!,
@@ -274,6 +280,8 @@ export function LaptopRigs({
         open: 1,
         gl: grab(lap),
         gp: grab(phone),
+        lapLight,
+        phoneLight,
       }
       // Clic sur le portable : l'écran se ferme, puis se rouvre au clic suivant
       rig.gl.act = () => {
@@ -348,8 +356,10 @@ export function LaptopRigs({
       // L'écran s'ouvre à l'arrivée dans la station, et suit les clics (open)
       u.lid.rotation.x = -LID_OPEN * ease(s.act[st] * 1.25) * u.open
       u.lap.rotation.set(u.gl.rx, u.gl.ry, 0)
+      u.lapLight(s.act[st], s.clock, reduce)
       u.phone.visible = !!ps[5]
       if (ps[5]) {
+        u.phoneLight(s.act[st], s.clock, reduce)
         u.phone.position.set(ps[5], (ps[6] || 0.1) + (reduce ? 0 : Math.sin(time * 1.1) * 0.06), 0.75)
         u.phone.rotation.set(-0.06 + u.gp.rx, (-ps[5] / 1.8) * 0.32 + u.gp.ry, reduce ? 0 : Math.sin(time * 0.7) * 0.03)
       }
