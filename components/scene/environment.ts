@@ -12,8 +12,13 @@ import {
   type WebGLRenderer,
 } from "three"
 
-/** Intensité du panneau lumineux au-dessus des objets (voir plus bas) */
-const TOP_SOFTBOX = 1.5
+/**
+ * Intensité maximale d'un panneau lumineux (canal le plus fort). La sortie n'a pas de tone
+ * mapping : un reflet au-dessus de 1 sature en blanc, et le halo s'allume dès 0,82. Les
+ * panneaux du prototype montaient à 7 : en tournant, un objet métallique en reflétait un en
+ * plein et disparaissait dans le blanc. Plafonnés ici, chaque panneau garde sa teinte.
+ */
+const PEAK = 1.1
 
 /**
  * Environnement de reflets généré à la volée (pas de fichier HDR) : un studio sombre,
@@ -29,20 +34,19 @@ export function buildStudioEnvironment(gl: WebGLRenderer): Texture {
   disposables.push(roomGeo, roomMat)
   es.add(new Mesh(roomGeo, roomMat))
 
-  // Intensités > 1 voulues : ce sont des sources lumineuses dans une cible HDR
+  // Panneau lumineux : teinte du prototype, canal le plus fort ramené à PEAK
   const panel = (r: number, g: number, b: number, w: number, h: number, x: number, y: number, z: number) => {
     const geo = new PlaneGeometry(w, h)
-    const mat = new MeshBasicMaterial({ color: new Color(r, g, b), side: DoubleSide })
+    const k = Math.min(1, PEAK / Math.max(r, g, b))
+    const mat = new MeshBasicMaterial({ color: new Color(r * k, g * k, b * k), side: DoubleSide })
     disposables.push(geo, mat)
     const m = new Mesh(geo, mat)
     m.position.set(x, y, z)
     m.lookAt(0, 0, 0)
     es.add(m)
   }
-  // Softbox du haut : 1,5 au lieu de 7 dans le prototype. À 7, le portable incliné vers soi
-  // reflète ce panneau en plein et l'aluminium sature en blanc (le prototype aussi) ; à 1,5 la vue
-  // normale ne change pas (luminosité mesurée 37 contre 39) et le métal garde son éclat incliné.
-  panel(TOP_SOFTBOX, TOP_SOFTBOX, TOP_SOFTBOX, 8, 5, 0, 9, 2)
+  // Valeurs du prototype, plafonnées à PEAK par panel()
+  panel(7, 7, 7, 8, 5, 0, 9, 2)
   panel(5, 1, 2.5, 5, 8, -9, 1, 2)
   panel(0.8, 3, 5, 5, 8, 9, 1, -1)
   panel(3, 3, 3, 10, 4, 0, 2, 9)
