@@ -33,12 +33,13 @@ export function screenCanvas(w: number, h: number, scale: number, anisotropy: nu
 }
 
 /**
- * Apps dessinées sur une page blanche : rendues à 0,52 au lieu de 0,8, sinon elles éblouissent
- * dans le décor sombre (LIGHT dans le prototype).
+ * Apps dessinées sur une page blanche : atténuées (0,7 au lieu de 0,8), sinon le blanc passe le
+ * seuil du halo (0,82) avec le reflet de la vitre et la page devient illisible. Le prototype
+ * descendait à 0,52 : la page sortait grise, l'écran paraissait éteint.
  */
 const LIGHT = new Set<ScreenApp>([appShop, appNotebook, pShop, pHours])
 const GLOW_DARK = 0.8
-const GLOW_LIGHT = 0.52
+const GLOW_LIGHT = 0.7
 
 /**
  * Redessine les écrans : chacun une image sur deux (décalés d'un écran à l'autre), et seulement
