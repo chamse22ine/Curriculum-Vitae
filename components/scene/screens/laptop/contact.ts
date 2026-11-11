@@ -4,7 +4,7 @@ import { tx } from "../shared"
 import type { ScreenApp } from "../types"
 import { chrome, prompt } from "./chrome"
 
-// 7 — Contact : `cat contact.json` dans un terminal
+// 8 — Contact : `cat contact.json` dans un terminal
 const CARD: [string, string][] = [
   ["name", CONTACT.name],
   ["email", CONTACT.email],

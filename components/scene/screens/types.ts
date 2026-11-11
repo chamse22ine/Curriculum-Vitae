@@ -4,7 +4,7 @@ import type { HomeFonts } from "@/lib/home-fonts"
 /** Contexte transmis à chaque app d'écran (aucune dépendance à React) */
 export interface ScreenEnv {
   lang: Lang
-  /** Palettes des huit sections, dans l'ordre de la page */
+  /** Palettes des neuf sections, dans l'ordre de la page */
   palettes: readonly Palette[]
   /** Familles réelles de next/font (noms hachés + repli) */
   fonts: HomeFonts

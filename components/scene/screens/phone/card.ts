@@ -4,11 +4,11 @@ import { ease, rr, tx } from "../shared"
 import type { ScreenApp } from "../types"
 import { pbar, pstat } from "./chrome"
 
-// 7 — Contact : carte de visite aux couleurs de la section
+// 8 — Contact : carte de visite aux couleurs de la section
 const LINES = [CONTACT.email, CONTACT.links[0].handle, CONTACT.links[1].handle]
 
 export const pCard: ScreenApp = (x, t, { palettes, fonts: { sans: SANS, mono: MONO, display: DISP } }) => {
-  const p = palettes[7]
+  const p = palettes[8]
   const g = x.createLinearGradient(0, 0, PW, PH)
   g.addColorStop(0, p[0])
   g.addColorStop(1, p[2])

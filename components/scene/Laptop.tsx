@@ -11,6 +11,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
+  SphereGeometry,
   type BufferGeometry,
   type Material,
   type Object3D,
@@ -203,9 +204,36 @@ const POSE: readonly (readonly number[])[] = [
   [1, 0.25, -1, 0.78, 0.2, -2.2, 1],
   [1.05, -0.5, 0.3, 0.72, -0.4, 0],
   [0.35, 0, 0, 1, 0.34, -2.1],
-  [0.95, 0, -0.3, 0.8, -0.3, 0],
-  [0.35, 0, 0, 1, 0.34, -2.1],
+  [-0.35, 0, 0, 1, -0.34, 2.1],
+  [-0.95, 0, -0.3, 0.8, 0.3, 0],
+  [-0.35, 0, 0, 1, -0.34, 2.1],
 ]
+
+/** Station Systèmes : le flux lumineux relie le petit téléphone au portable (comme Fedora Link) */
+const BEAM_STATION = 5
+const BEAM_DOTS = 14
+
+/** Flux de points lumineux (beam du prototype), accroché à l'ensemble des stations impaires */
+function buildBeam() {
+  const group = new Group()
+  group.name = "beam"
+  const geometry = new SphereGeometry(0.03, 10, 8)
+  const material = new MeshBasicMaterial({ color: 0xffffff })
+  for (let i = 0; i < BEAM_DOTS; i++) {
+    const d = new Mesh(geometry, material)
+    d.raycast = () => {}
+    group.add(d)
+  }
+  group.visible = false
+  return {
+    group,
+    material,
+    dispose() {
+      geometry.dispose()
+      material.dispose()
+    },
+  }
+}
 
 /** Ouverture de l'écran (rad) */
 const LID_OPEN = 1.87
@@ -299,14 +327,18 @@ export function LaptopRigs({
       return { rig, screens }
     }
     const rigs = [make(0), make(1)]
+    const beam = buildBeam()
+    rigs[1].rig.group.add(beam.group)
     return {
       rigs,
+      beam,
       drawText: (f: HomeFonts) => {
         lapA.drawText(f)
         phA.drawText(f)
       },
       dispose() {
         rigs.forEach((r) => r.rig.group.removeFromParent())
+        beam.dispose()
         lapA.dispose()
         phA.dispose()
         extra.forEach((e) => e.dispose())
@@ -336,7 +368,7 @@ export function LaptopRigs({
   useFrame(() => {
     const { F, wide, time, reduce } = s
     dev.rigs.forEach(({ rig: u }, n) => {
-      const st = Math.max(n, Math.min(n ? 7 : 6, 2 * Math.round((F - n) / 2) + n))
+      const st = Math.max(n, Math.min(n ? 7 : 8, 2 * Math.round((F - n) / 2) + n))
       const ps = POSE[st]
       const yaw = wide ? ps[4] : reduce ? 0 : Math.sin(time * 0.45 + n) * 0.2
       const r = u.group
@@ -364,6 +396,24 @@ export function LaptopRigs({
         u.phone.rotation.set(-0.06 + u.gp.rx, (-ps[5] / 1.8) * 0.32 + u.gp.ry, reduce ? 0 : Math.sin(time * 0.7) * 0.03)
       }
     })
+
+    // Flux lumineux : part du haut du téléphone, monte en arc et arrive sur le bord supérieur de
+    // l'écran, en reculant (z) pour ne jamais passer devant la dalle
+    const beam = dev.beam
+    beam.group.visible = dev.rigs[1].rig.st === BEAM_STATION && s.act[BEAM_STATION] > 0.5
+    if (beam.group.visible) {
+      const bp = POSE[BEAM_STATION]
+      const ax = bp[5]
+      const ay = (bp[6] || 0.1) + 0.95
+      beam.material.color.copy(s.cC)
+      beam.group.children.forEach((d, i) => {
+        const f = reduce ? i / BEAM_DOTS : (time * 0.2 + i / BEAM_DOTS) % 1
+        const e2 = f * f * (3 - 2 * f)
+        const arc = Math.sin(Math.PI * f)
+        d.position.set(ax * (1 - e2), ay + (1.28 - ay) * e2 + arc * 0.45, 0.75 - 2.5 * e2)
+        d.scale.setScalar(0.35 + arc * 0.5)
+      })
+    }
   }, FRAME.objects)
 
   return null

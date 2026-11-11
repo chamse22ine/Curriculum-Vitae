@@ -3,7 +3,7 @@ import { rr, tx } from "../shared"
 import type { ScreenApp } from "../types"
 import { chrome } from "./chrome"
 
-// 5 — Projets : les huit vrais projets. [nom, sous-titre, vignette, couleur]
+// 6 — Projets : les huit vrais projets. [nom, sous-titre, vignette, couleur]
 const PROJ: [string, string, string, string][] = [
   ["CultureX", "Next.js · Quiz", "Q?", "#00c8f0"],
   ["FlightBot", "GCP · MLOps · Chatbot", "BOT", "#e05bff"],

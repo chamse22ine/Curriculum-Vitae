@@ -16,6 +16,27 @@ function Name({ p }: Readonly<{ p: Project }>) {
   )
 }
 
+/** Cartes de projets (grille de la section Projets, apps natives de la section Systèmes) */
+export function ProjectList({ items }: Readonly<{ items: readonly Project[] }>) {
+  return (
+    <ul className="projects">
+      {items.map((p, i) => (
+        <li key={i} style={{ "--k": PROJECT_KIND_COLOR[p.kind] } as CSSProperties}>
+          <span className="tags">
+            <T v={p.tags} />
+          </span>
+          <h3>
+            <Name p={p} />
+          </h3>
+          <p>
+            <T v={p.description} />
+          </p>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function Projects() {
   return (
     <Section id="projets" wide>
@@ -28,21 +49,7 @@ export function Projects() {
       <h2>
         <R v={PROJECTS_HEAD.title} />
       </h2>
-      <ul className="projects">
-        {PROJECTS.map((p, i) => (
-          <li key={i} style={{ "--k": PROJECT_KIND_COLOR[p.kind] } as CSSProperties}>
-            <span className="tags">
-              <T v={p.tags} />
-            </span>
-            <h3>
-              <Name p={p} />
-            </h3>
-            <p>
-              <T v={p.description} />
-            </p>
-          </li>
-        ))}
-      </ul>
+      <ProjectList items={PROJECTS} />
     </Section>
   )
 }

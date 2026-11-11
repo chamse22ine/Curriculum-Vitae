@@ -7,6 +7,7 @@ import { appNotebook } from "./notebook"
 import { appProjects } from "./projects"
 import { appShop } from "./shop"
 import { appTrain } from "./train"
+import { appVigie } from "./vigie"
 
 /** Une app par section, dans l'ordre de content/sections.ts */
-export const LAPTOP_APPS: readonly ScreenApp[] = [appCode, appShop, appNotebook, appTrain, appCI, appProjects, appGit, appContact]
+export const LAPTOP_APPS: readonly ScreenApp[] = [appCode, appShop, appNotebook, appTrain, appCI, appVigie, appProjects, appGit, appContact]

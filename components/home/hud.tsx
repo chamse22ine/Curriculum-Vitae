@@ -6,7 +6,7 @@ import { useHome } from "./home-context"
 
 const pad = (n: number) => String(n).padStart(2, "0")
 
-/** Indicateur bas d'écran : « 03 / 08 ▬ DATA » (masqué sur mobile) */
+/** Indicateur bas d'écran : « 03 / 09 ▬ DATA » (masqué sur mobile) */
 export function Hud() {
   const { active } = useHome()
   return (

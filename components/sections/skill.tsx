@@ -1,8 +1,10 @@
 import { SKILLS } from "@/content/copy"
+import { SYSTEM_PROJECTS } from "@/content/projects"
+import { ProjectList } from "./projects"
 import { Section } from "./section"
 import { R, T } from "./text"
 
-/** Sections Web, Data, IA / MLOps et DevOps : même gabarit */
+/** Sections Web, Data, IA / MLOps, DevOps et Systèmes : même gabarit (Systèmes ajoute ses apps natives) */
 export function Skill({ id }: Readonly<{ id: keyof typeof SKILLS }>) {
   const s = SKILLS[id]
   return (
@@ -31,6 +33,7 @@ export function Skill({ id }: Readonly<{ id: keyof typeof SKILLS }>) {
           <R v={s.proof} />
         </div>
       )}
+      {id === "systemes" && <ProjectList items={SYSTEM_PROJECTS} />}
     </Section>
   )
 }

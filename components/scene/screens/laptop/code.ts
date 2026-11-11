@@ -15,6 +15,7 @@ const CODE = [
   '    data: ["Python", "SQL", "Pandas"],',
   '    ai: ["Scikit-learn", "MLOps", "Databricks"],',
   '    devops: ["Docker", "GitHub Actions", "GCP"],',
+  '    native: ["Rust", "GTK4", "libadwaita"],',
   "  },",
   "};",
   "",
