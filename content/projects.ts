@@ -1,12 +1,13 @@
 import type { Text } from "./types"
 
 /** Couleur d'accent de la carte (bordure haute et tags) */
-export type ProjectKind = "web" | "ai" | "c"
+export type ProjectKind = "web" | "ai" | "c" | "sys"
 
 export const PROJECT_KIND_COLOR: Record<ProjectKind, string> = {
   web: "#00e0ff",
   ai: "#e05bff",
   c: "#ffb300",
+  sys: "#ff6a5e",
 }
 
 export interface Project {
@@ -72,5 +73,29 @@ export const PROJECTS: readonly Project[] = [
     kind: "web",
     href: { external: "https://chams.dev" },
     description: { fr: "Ce site.", en: "This site." },
+  },
+]
+
+/** Apps natives, présentées dans la section Systèmes (pas dans la grille des projets) */
+export const SYSTEM_PROJECTS: readonly Project[] = [
+  {
+    name: "Vigie",
+    tags: "Rust · GTK4 · libadwaita",
+    kind: "sys",
+    // Dépôt privé : pas de lien
+    description: {
+      fr: "Application GNOME native pour Fedora : batterie, stockage, paquets de toutes les sources et nettoyage avec aperçu exact.",
+      en: "Native GNOME app for Fedora: battery, storage, packages from all sources and cleanup with an exact preview.",
+    },
+  },
+  {
+    name: "Fedora Link ↗",
+    tags: "Rust · GTK4 · KDE Connect",
+    kind: "sys",
+    href: { external: "https://github.com/chamse22ine/fedora-link" },
+    description: {
+      fr: "Un téléphone Android intégré au bureau Fedora, via le protocole KDE Connect.",
+      en: "An Android phone integrated into the Fedora desktop, over the KDE Connect protocol.",
+    },
   },
 ]

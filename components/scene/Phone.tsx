@@ -70,11 +70,11 @@ export function buildPhone(mats: Materials, screen: Texture, anisotropy = 1) {
 }
 
 /** Station du grand téléphone selon l'avancement du voyage (bigSt du prototype) */
-const bigStation = (F: number) => (F < 3.5 ? 1 : 6)
+const bigStation = (F: number) => (F < 4 ? 1 : 7)
 
 /**
- * Grand téléphone, en un seul exemplaire : boutique mobile (station 1, à droite du portable)
- * puis suivi d'heures (station 6, à gauche). Échelle 1,3, écran dessiné ×2.
+ * Grand téléphone, en un seul exemplaire : boutique mobile (station 1) puis suivi d'heures
+ * (station 7), à droite du portable dans les deux cas. Échelle 1,3, écran dessiné ×2.
  */
 export function BigPhone({
   materials,
@@ -119,7 +119,8 @@ export function BigPhone({
     const parent = s.stations[at]
     if (parent && dev.phone.group.parent !== parent) parent.add(dev.phone.group)
     const { time, reduce } = s
-    const m = at === 1 ? 1 : -1
+    // Côté du grand téléphone : à droite dans les deux stations (le portable est à gauche)
+    const m = 1
     // À l'arrivée, le téléphone pivote sur lui-même avant de se poser (q : 1 → 0)
     const q = 1 - ease(s.act[at] * 1.2)
     const p = dev.phone.group

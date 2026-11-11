@@ -20,6 +20,7 @@ export default function Home() {
       <Skill id="data" />
       <Skill id="ia" />
       <Skill id="devops" />
+      <Skill id="systemes" />
       <Projects />
       <Journey />
       <Contact />

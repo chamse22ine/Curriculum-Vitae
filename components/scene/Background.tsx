@@ -32,8 +32,8 @@ const vertexShader = "varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(posit
 
 /*
  * Un univers par section, dans une seule fonction world(m, …) : 0 espace étoilé, 1 plan technique,
- * 2 histogramme et courbes, 3 réseau de neurones, 4 sol en grille néon, 5 pluie de code,
- * 6 courbes de niveau, 7 ondes concentriques. Shader du prototype, copié tel quel.
+ * 2 histogramme et courbes, 3 réseau de neurones, 4 sol en grille néon, 5 nid d'abeilles,
+ * 6 pluie de code, 7 courbes de niveau, 8 ondes concentriques. Shader du prototype, copié tel quel.
  * Pas de <colorspace_fragment> : comme en r128, les couleurs sortent sans conversion.
  * fwidth() est natif en WebGL 2 (l'ancienne extension « derivatives » n'est plus nécessaire).
  */
@@ -65,11 +65,15 @@ const fragmentShader = [
   '    if(d>0.){float z=.1/d;float gx=abs(fract((uv.x-.5)*uAspect*z*8.+uPan*5.)-.5),gz=abs(fract(z*6.+uTime*.12)-.5);',
   '      return base+cB*max(ln(gx,.004+z*.02),ln(gz,.02+z*z*.06))*.5*smoothstep(0.,.07,d)*sd+cA*exp(-d*16.)*.45;}',
   '    return base+cA*exp(d*9.)*.4+cC*exp(d*3.)*.07+vec3(stars(p,30.)*.5*sd);}',
-  '  if(m<5.5){float cw=.02,rh=.026;vec2 cell=vec2(floor(p.x/cw),floor(uv.y/rh));float n=h21(vec2(cell.x,7.));',
+  '  if(m<5.5){vec2 s=vec2(1.,1.7320508),q=p*9.;vec4 hc=floor(vec4(q,q-vec2(.5,1.))/s.xyxy)+.5;vec4 h=vec4(q-hc.xy*s,q-(hc.zw+.5)*s);',
+  '    vec4 hx=dot(h.xy,h.xy)<dot(h.zw,h.zw)?vec4(h.xy,hc.xy):vec4(h.zw,hc.zw+.5);vec2 a=abs(hx.xy);float d=max(dot(a,s*.5),a.x),n=h21(hx.zw);',
+  '    float edge=ln(.5-d,.035),fill=step(.8,n)*(.5+.5*sin(uTime*1.1+n*40.))*(1.-smoothstep(.36,.5,d));',
+  '    return base+halo+(cB*edge*.24+mix(cA,cC,step(.9,n))*fill*.2)*sd;}',
+  '  if(m<6.5){float cw=.02,rh=.026;vec2 cell=vec2(floor(p.x/cw),floor(uv.y/rh));float n=h21(vec2(cell.x,7.));',
   '    float v=fract((cell.y+.5)*rh*(1.2+n)+uTime*(.07+.2*n)+n*10.);vec2 sub=floor(fract(vec2(p.x/cw,uv.y/rh))*vec2(4.,6.));',
   '    float gl=step(.5,h21(cell*1.7+sub*.37+floor(uTime*2.*h21(cell))*.13))*step(.5,sub.x)*step(.5,sub.y);',
   '    return base+halo+(cA*pow(1.-v,5.)*.45+vec3(1.)*pow(1.-v,40.)*.4)*gl*sd;}',
-  '  if(m<6.5){float n=vn(p*2.2+vec2(0.,uTime*.02))+.5*vn(p*4.7-vec2(uTime*.015,0.));float v=n*9.;float w=fwidth(v)*1.4+.01;',
+  '  if(m<7.5){float n=vn(p*2.2+vec2(0.,uTime*.02))+.5*vn(p*4.7-vec2(uTime*.015,0.));float v=n*9.;float w=fwidth(v)*1.4+.01;',
   '    float l=ln(abs(fract(v)-.5),w),mj=step(2.5,mod(floor(v),4.));return base+halo+(cB*l*(.16+.34*mj)+cA*n*.04)*sd;}',
   '  float v=r*4.5-uTime*.35;float ring=ln(abs(fract(v)-.5),.03+r*.02)*exp(-r*1.1);float sw=pow(max(0.,cos(atan(dv.y,dv.x)-uTime*.5)),30.)*exp(-r*.8);',
   '  return base+halo*1.2+(cA*ring*.45+cC*sw*.25)*sd+vec3(stars(p,30.)*.4*sd);}',

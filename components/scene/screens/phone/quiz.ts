@@ -4,7 +4,7 @@ import { rr, tx, wrap } from "../shared"
 import type { ScreenApp } from "../types"
 import { pbar, pstat } from "./chrome"
 
-// 5 — Projets : une question de CultureX, minuteur puis bonne réponse
+// 6 — Projets : une question de CultureX, minuteur puis bonne réponse
 export const pQuiz: ScreenApp = (x, t, { lang, fonts: { sans: SANS, mono: MONO, display: DISP } }) => {
   const tt = t % 6
   const ok = tt > 2.4

@@ -3,7 +3,7 @@ import { tx } from "../shared"
 import type { ScreenApp } from "../types"
 import { chrome, prompt } from "./chrome"
 
-// 6 — Parcours : la carrière sous forme d'historique git. [graphe, hash, refs, message, date]
+// 7 — Parcours : la carrière sous forme d'historique git. [graphe, hash, refs, message, date]
 // Dates alignées sur content/journey.ts (confirmées le 2026-11-10).
 const GIT: [string, string, string, string, string][] = [
   ["* ", "a9f3c21", "(HEAD -> main) ", "feat: apprenticeship @ Decathlon Digital, MyClub platform", "09.2026"],

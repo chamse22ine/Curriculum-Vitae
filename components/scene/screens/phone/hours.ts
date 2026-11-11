@@ -4,7 +4,7 @@ import { ease, rr, tx } from "../shared"
 import type { ScreenApp } from "../types"
 import { pbar, pstat } from "./chrome"
 
-// 6 — Parcours : le suivi d'heures d'alternance (calendrier du mois + répartition)
+// 7 — Parcours : le suivi d'heures d'alternance (calendrier du mois + répartition)
 const COLS = ["#3da5ff", "#7a5cff", "#22c7a0"]
 
 export const pHours: ScreenApp = (x, t, { lang, fonts: { sans: SANS, mono: MONO } }) => {

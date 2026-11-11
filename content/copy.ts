@@ -1,6 +1,6 @@
 import { pick, type RichText, type Text } from "./types"
 
-/** Section de compétence (Web, Data, IA, DevOps) */
+/** Section de compétence (Web, Data, IA, DevOps, Systèmes) */
 export interface SkillCopy {
   eyebrow: Text
   title: RichText
@@ -19,8 +19,8 @@ export const HERO = {
     en: ["I build apps, ", { em: "from pixel to pipeline." }],
   } as RichText,
   body: {
-    fr: `Software Engineer en alternance chez Decathlon Digital et étudiant en Master Informatique à l'Université d'Artois. Web, data, IA, DevOps${nb}: je prends un projet de l'interface jusqu'à la mise en production.`,
-    en: "Software Engineer apprentice at Decathlon Digital and Computer Science Master's student at the University of Artois. Web, data, AI, DevOps: I take a project from the interface all the way to production.",
+    fr: `Software Engineer en alternance chez Decathlon Digital et étudiant en Master Informatique à l'Université d'Artois. Web, data, IA, DevOps, apps natives${nb}: je prends un projet de l'interface jusqu'à la mise en production.`,
+    en: "Software Engineer apprentice at Decathlon Digital and Computer Science Master's student at the University of Artois. Web, data, AI, DevOps, native apps: I take a project from the interface all the way to production.",
   } as Text,
   ctaProjects: { fr: "Voir les projets", en: "See the projects" } as Text,
   ctaContact: { fr: "Me contacter", en: "Get in touch" } as Text,
@@ -36,7 +36,7 @@ export const HERO = {
   ] as readonly Text[],
 }
 
-export const SKILLS: Record<"web" | "data" | "ia" | "devops", SkillCopy> = {
+export const SKILLS: Record<"web" | "data" | "ia" | "devops" | "systemes", SkillCopy> = {
   web: {
     eyebrow: { fr: "Développement web", en: "Web development" },
     title: {
@@ -96,6 +96,18 @@ export const SKILLS: Record<"web" | "data" | "ia" | "devops", SkillCopy> = {
       fr: ["Certifié ", { strong: "AZ-400" }, ", Enterprise DevOps Development."],
       en: [{ strong: "AZ-400" }, " certified, Enterprise DevOps Development."],
     },
+  },
+  systemes: {
+    eyebrow: { fr: "Systèmes & apps natives", en: "Systems & native apps" },
+    title: {
+      fr: ["Du natif, ", { em: "au plus près du système" }, "."],
+      en: ["Native code, ", { em: "close to the system" }, "."],
+    },
+    body: {
+      fr: `Je développe aussi des applications de bureau pour Linux, en Rust avec GTK4 et libadwaita${nb}: des outils pensés pour Fedora et intégrés à GNOME.`,
+      en: "I also build desktop applications for Linux, in Rust with GTK4 and libadwaita: tools designed for Fedora and integrated into GNOME.",
+    },
+    stack: ["Rust", "GTK4", "libadwaita", "C", "Linux"],
   },
 }
 
