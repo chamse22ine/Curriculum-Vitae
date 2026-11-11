@@ -8,6 +8,8 @@ export interface ScreenEnv {
   palettes: readonly Palette[]
   /** Familles réelles de next/font (noms hachés + repli) */
   fonts: HomeFonts
+  /** Sans barre d'état ni barre d'accueil (app de téléphone incrustée dans un autre écran) */
+  bare?: boolean
 }
 
 /** Une app : dessine l'image à l'instant t (secondes depuis son apparition) */

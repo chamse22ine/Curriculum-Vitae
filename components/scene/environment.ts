@@ -12,6 +12,9 @@ import {
   type WebGLRenderer,
 } from "three"
 
+/** Intensité du panneau lumineux au-dessus des objets (voir plus bas) */
+const TOP_SOFTBOX = 1.5
+
 /**
  * Environnement de reflets généré à la volée (pas de fichier HDR) : un studio sombre,
  * des softbox blanches et deux panneaux colorés, filtrés par PMREMGenerator.
@@ -36,7 +39,10 @@ export function buildStudioEnvironment(gl: WebGLRenderer): Texture {
     m.lookAt(0, 0, 0)
     es.add(m)
   }
-  panel(7, 7, 7, 8, 5, 0, 9, 2)
+  // Softbox du haut : 1,5 au lieu de 7 dans le prototype. À 7, le portable incliné vers soi
+  // reflète ce panneau en plein et l'aluminium sature en blanc (le prototype aussi) ; à 1,5 la vue
+  // normale ne change pas (luminosité mesurée 37 contre 39) et le métal garde son éclat incliné.
+  panel(TOP_SOFTBOX, TOP_SOFTBOX, TOP_SOFTBOX, 8, 5, 0, 9, 2)
   panel(5, 1, 2.5, 5, 8, -9, 1, 2)
   panel(0.8, 3, 5, 5, 8, 9, 1, -1)
   panel(3, 3, 3, 10, 4, 0, 2, 9)

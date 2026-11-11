@@ -29,9 +29,11 @@ export function Hero() {
           <T v={HERO.ctaContact} />
         </a>
       </div>
-      <div className="hint">
-        <T v={HERO.hint} />
-      </div>
+      {HERO.hints.map((h, i) => (
+        <div className="hint" key={i}>
+          <T v={h} />
+        </div>
+      ))}
     </Section>
   )
 }

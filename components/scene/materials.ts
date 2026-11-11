@@ -1,28 +1,27 @@
-import { MeshStandardMaterial, type Texture } from "three"
+import { MeshPhysicalMaterial, MeshStandardMaterial, type Object3D, type Texture } from "three"
 
 /**
- * Matériaux partagés du portable et du téléphone.
+ * Matériaux partagés des objets, valeurs du prototype.
  * Les couleurs hexadécimales sont lues « brutes » comme en r128 : la scène tourne avec
  * `legacy` (ColorManagement désactivé), voir Scene.tsx.
  */
-/**
- * Compensation du PMREM de r187 sur les métaux (metalness 1) : à environnement identique,
- * ils sortaient plus sombres qu'en r128. Étalonné par capture contre le prototype
- * (pavé tactile 103/103/115, bord de la base 127/127/140). Les autres matériaux gardent
- * les valeurs du prototype, qui correspondent déjà (écart moyen < 5/255 sur l'écran).
- */
-const METAL_ENV = { alu: 1.55, pad: 1.8 }
-
 export function createMaterials() {
-  const ALU = new MeshStandardMaterial({ color: 0xb9bcc6, metalness: 1, roughness: 0.32, envMapIntensity: METAL_ENV.alu })
-  const TITAN = new MeshStandardMaterial({ color: 0x101116, metalness: 1, roughness: 0.28, envMapIntensity: METAL_ENV.alu })
+  const ALU = new MeshStandardMaterial({ color: 0xd4d7e0, metalness: 1, roughness: 0.32 })
+  const TITAN = new MeshStandardMaterial({ color: 0x2a2b33, metalness: 1, roughness: 0.28 })
   const BLACK = new MeshStandardMaterial({ color: 0x020203, metalness: 0, roughness: 0.25, envMapIntensity: 0.15 })
   const KEYM = new MeshStandardMaterial({ color: 0x0b0b0e, roughness: 0.5, metalness: 0, envMapIntensity: 0.5 })
-  const DARKALU = new MeshStandardMaterial({ color: 0x4a4c55, metalness: 1, roughness: 0.4, envMapIntensity: METAL_ENV.alu })
-  const PADM = new MeshStandardMaterial({ color: 0xa4a7b2, metalness: 1, roughness: 0.2, envMapIntensity: METAL_ENV.pad })
-  const all = { ALU, TITAN, BLACK, KEYM, DARKALU, PADM }
+  const DARKALU = new MeshStandardMaterial({ color: 0x4a4c55, metalness: 1, roughness: 0.4 })
+  const PADM = new MeshStandardMaterial({ color: 0xa4a7b2, metalness: 1, roughness: 0.2 })
+  /** Coques des téléphones : sombres et mates, sinon elles prennent un liseré coloré */
+  const PHONEM = new MeshStandardMaterial({ color: 0x0c0c10, metalness: 0.3, roughness: 0.55, envMapIntensity: 0.18 })
+  const all = { ALU, TITAN, BLACK, KEYM, DARKALU, PADM, PHONEM }
   return {
     ...all,
+    /** Sans environnement de reflets (PMREM en échec) : métal atténué, comme dans le prototype */
+    dullMetals() {
+      ALU.metalness = 0.3
+      TITAN.metalness = 0.3
+    },
     dispose() {
       Object.values(all).forEach((m) => m.dispose())
     },
@@ -31,14 +30,43 @@ export function createMaterials() {
 
 export type Materials = ReturnType<typeof createMaterials>
 
-/** Dalle d'écran : noire, l'image vient de la carte émissive, avec un léger reflet */
+/**
+ * Part de reflet de la vitre (1 = verre ordinaire, comme dans le prototype). À 1, sur mobile, le
+ * portable qui se balance renvoie par moments le soleil sur toute la dalle : l'écran passe le
+ * seuil du halo et devient illisible (le prototype aussi). À 0,15 l'écran reste lisible (mesuré).
+ */
+const GLASS_SPECULAR = 0.15
+
+/**
+ * Dalle d'écran : noire, l'image vient de la carte émissive. Intensité 0,8 (0,52 pour les apps
+ * à fond blanc, réglée à chaque dessin) : sous le seuil du halo, l'écran reste lisible.
+ * MeshPhysicalMaterial pour régler la part de reflet (specularIntensity).
+ */
 export function glass(map: Texture) {
-  return new MeshStandardMaterial({
+  return new MeshPhysicalMaterial({
+    specularIntensity: GLASS_SPECULAR,
     color: 0x000000,
     emissive: 0xffffff,
     emissiveMap: map,
-    roughness: 0.12,
+    emissiveIntensity: 0.8,
+    roughness: 0.4,
     metalness: 0,
-    envMapIntensity: 0.06,
+    envMapIntensity: 0.05,
+  })
+}
+
+/**
+ * Pose la carte de reflets sur chaque matériau standard d'un objet. Équivaut au
+ * scene.environment du prototype : depuis r163, three n'applique material.envMapIntensity
+ * qu'aux matériaux qui portent eux-mêmes leur envMap.
+ */
+export function applyEnv(root: Object3D, env: Texture | null) {
+  if (!env) return
+  root.traverse((o) => {
+    const m = (o as { material?: unknown }).material
+    if (m instanceof MeshStandardMaterial && !m.envMap) {
+      m.envMap = env
+      m.needsUpdate = true
+    }
   })
 }

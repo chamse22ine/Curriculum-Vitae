@@ -1,4 +1,4 @@
-import { CanvasTexture, ExtrudeGeometry, SRGBColorSpace, Shape, ShapeGeometry } from "three"
+import { CanvasTexture, ExtrudeGeometry, Shape, ShapeGeometry } from "three"
 
 // Helpers géométriques du prototype (rrShape, slab, rplane), portés tels quels.
 
@@ -49,15 +49,13 @@ export function mkCanvas(w: number, h: number) {
   return c
 }
 
-/** Texture d'un canvas de couleurs (texOf du prototype : sRGB + anisotropie max) */
-export function srgbTexture(c: HTMLCanvasElement, anisotropy: number) {
+/**
+ * Texture d'un canvas (texOf du prototype) : anisotropie max, et aucun espace colorimétrique,
+ * comme en r128 sans encodage. Une texture marquée sRGB serait décodée en linéaire par le GPU
+ * et sortirait plus sombre, puisque la sortie est linéaire (voir Scene.tsx).
+ */
+export function canvasTexture(c: HTMLCanvasElement, anisotropy = 1) {
   const t = new CanvasTexture(c)
-  t.colorSpace = SRGBColorSpace
   t.anisotropy = anisotropy
   return t
-}
-
-/** Texture de masque (alpha seulement), sans espace colorimétrique, comme dans le prototype */
-export function plainTexture(c: HTMLCanvasElement) {
-  return new CanvasTexture(c)
 }

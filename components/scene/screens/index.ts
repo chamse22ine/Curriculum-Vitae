@@ -1,75 +1,66 @@
-import type { Texture } from "three"
-import { MOBILE_MAX } from "@/hooks/use-scroll-progress"
-import { mkCanvas, srgbTexture } from "../geometry"
-import { KP, LH, LW, PH, PW } from "./dims"
+import type { MeshStandardMaterial, Texture } from "three"
+import { canvasTexture, mkCanvas } from "../geometry"
+import { appNotebook } from "./laptop/notebook"
+import { appShop } from "./laptop/shop"
+import { pHours } from "./phone/hours"
+import { pShop } from "./phone/shop"
 import type { ScreenApp, ScreenEnv } from "./types"
 
-export { LH, LW, PH, PW, KP } from "./dims"
+export { KP, LH, LW, PH, PW } from "./dims"
 
+/**
+ * Un écran d'objet : un canvas redessiné en continu, la texture qui l'affiche, et le matériau
+ * de la dalle (son intensité dépend de l'app). `where()` donne la station où se trouve l'objet,
+ * `app(station)` l'app à y afficher.
+ */
 export interface Screen {
-  canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
-  texture: Texture
-  /** Facteur entre l'espace de dessin (LW×LH ou PW×PH) et le canvas réel */
+  /** Facteur entre l'espace de dessin (ex. 1216×786) et le canvas réel */
   scale: number
+  texture: Texture
+  material: MeshStandardMaterial | null
+  where: () => number
+  app: (station: number) => ScreenApp
 }
 
-function screen(w: number, h: number, scale: number, anisotropy: number): Screen {
+/** Canvas d'écran (fond noir au départ) et sa texture */
+export function screenCanvas(w: number, h: number, scale: number, anisotropy: number) {
   const canvas = mkCanvas(Math.round(w * scale), Math.round(h * scale))
   const ctx = canvas.getContext("2d")!
   ctx.fillStyle = "#000"
   ctx.fillRect(0, 0, canvas.width, canvas.height)
-  return { canvas, ctx, texture: srgbTexture(canvas, anisotropy), scale }
+  return { ctx, scale, texture: canvasTexture(canvas, anisotropy) }
 }
-
-export function createScreens(anisotropy: number) {
-  // Texture du portable : 1216×786 sur ordinateur, 1024 de large sur mobile (fixé au chargement)
-  const kl = window.innerWidth > MOBILE_MAX ? 1 : 1024 / LW
-  const laptop = screen(LW, LH, kl, anisotropy)
-  const phone = screen(PW, PH, KP, anisotropy)
-  return {
-    laptop,
-    phone,
-    dispose() {
-      laptop.texture.dispose()
-      phone.texture.dispose()
-    },
-  }
-}
-
-export type Screens = ReturnType<typeof createScreens>
 
 /**
- * État partagé par les deux écrans : app courante, app précédente (pour le fondu de 0,4 s)
- * et instant d'apparition de chaque app. Reprise de onActive() / paint() du prototype.
+ * Apps dessinées sur une page blanche : rendues à 0,52 au lieu de 0,8, sinon elles éblouissent
+ * dans le décor sombre (LIGHT dans le prototype).
  */
-export function createPainter(count: number, reduce: boolean) {
-  let cur = 0
-  let prev = 0
-  let fadeT = -9
-  const startT = new Array<number>(count).fill(0)
-  // Mouvement réduit : chaque app est figée sur une image « aboutie » (t = 30 s)
-  const appTime = (i: number, clock: number) => (reduce ? 30 : clock - startT[i])
+const LIGHT = new Set<ScreenApp>([appShop, appNotebook, pShop, pHours])
+const GLOW_DARK = 0.8
+const GLOW_LIGHT = 0.52
 
-  return {
-    setActive(i: number, clock: number) {
-      if (i === cur) return
-      prev = cur
-      cur = i
-      startT[i] = clock
-      fadeT = clock
-    },
-    paint(s: Screen, apps: readonly ScreenApp[], clock: number, env: ScreenEnv) {
-      const f = Math.min(1, (clock - fadeT) / 0.4)
-      const x = s.ctx
-      x.setTransform(s.scale, 0, 0, s.scale, 0, 0)
-      x.globalAlpha = 1
-      x.textBaseline = "alphabetic"
-      if (f < 1) apps[prev](x, appTime(prev, clock), env)
-      x.globalAlpha = f
-      apps[cur](x, appTime(cur, clock), env)
-      x.globalAlpha = 1
-      s.texture.needsUpdate = true
-    },
-  }
+/**
+ * Redessine les écrans : chacun une image sur deux (décalés d'un écran à l'autre), et seulement
+ * si sa station est visible. Chaque app démarre quand sa station devient active (startT).
+ */
+export function paintScreens(
+  screens: readonly Screen[],
+  tick: number,
+  visible: (station: number) => boolean,
+  appTime: (station: number) => number,
+  env: ScreenEnv,
+) {
+  screens.forEach((s, n) => {
+    const st = s.where()
+    if ((tick + n) % 2 || !visible(st)) return
+    const fn = s.app(st)
+    if (s.material) s.material.emissiveIntensity = LIGHT.has(fn) ? GLOW_LIGHT : GLOW_DARK
+    const x = s.ctx
+    x.setTransform(s.scale, 0, 0, s.scale, 0, 0)
+    x.globalAlpha = 1
+    x.textBaseline = "alphabetic"
+    fn(x, appTime(st), env)
+    s.texture.needsUpdate = true
+  })
 }

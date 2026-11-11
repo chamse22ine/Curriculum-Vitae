@@ -24,7 +24,16 @@ export const HERO = {
   } as Text,
   ctaProjects: { fr: "Voir les projets", en: "See the projects" } as Text,
   ctaContact: { fr: "Me contacter", en: "Get in touch" } as Text,
-  hint: { fr: `Fais défiler${nb}: l'écran change de métier.`, en: "Scroll: the screen switches jobs." } as Text,
+  hints: [
+    {
+      fr: `Fais défiler ou utilise ↑ ↓${nb}: la caméra voyage d'un univers à l'autre.`,
+      en: "Scroll or press ↑ ↓: the camera travels from one world to the next.",
+    },
+    {
+      fr: `Attrape les objets${nb}: glisse pour les tourner, clique pour les animer.`,
+      en: "Grab the objects: drag to turn them, click to animate them.",
+    },
+  ] as readonly Text[],
 }
 
 export const SKILLS: Record<"web" | "data" | "ia" | "devops", SkillCopy> = {
@@ -113,6 +122,8 @@ export const CONTACT_HEAD = {
 /** Libellés d'interface (en-tête, pied de page) */
 export const UI = {
   langLabel: "Changer de langue / Switch language",
+  prevSection: "Section précédente / Previous section",
+  nextSection: "Section suivante / Next section",
   navLabel: { fr: "Sections", en: "Sections" } as Text,
   footer: "© 2026 Chamseddine Adaadour" as Text,
 }
