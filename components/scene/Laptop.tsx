@@ -20,6 +20,7 @@ import type { HomeFonts } from "@/lib/home-fonts"
 import { sceneFontsReady } from "./fonts"
 import { canvasTexture, mkCanvas, rplane, slab } from "./geometry"
 import { applyEnv, glass, type Materials } from "./materials"
+import { brandLogo } from "./brand"
 import { buildPhone } from "./Phone"
 import { KP, LH, LW, PH, PW, screenCanvas, type Screen } from "./screens"
 import { LAPTOP_APPS } from "./screens/laptop"
@@ -145,11 +146,9 @@ function buildLaptop(mats: Materials, screen: Texture, anisotropy: number) {
   lscr.name = "lscr"
   lscr.rotation.x = HALF_PI
   add(lid, lscr, 0, 0, D / 2 + 0.03)
-  const gcan = mkCanvas(520, 144)
-  const gt = tex(canvasTexture(gcan, anisotropy))
-  const logo = new Mesh(geo(new PlaneGeometry(1.3, 0.36)), mat(new MeshStandardMaterial({ map: gt, transparent: true, metalness: 0.9, roughness: 0.2 })))
-  logo.rotation.x = -HALF_PI
-  add(lid, logo, 0, 0.0785, D / 2)
+  const brand = brandLogo(1.3, anisotropy)
+  brand.mesh.rotation.x = -HALF_PI
+  add(lid, brand.mesh, 0, 0.0785, D / 2)
 
   // Ombre portée douce sous la base
   const scan = mkCanvas(256, 256)
@@ -179,25 +178,14 @@ function buildLaptop(mats: Materials, screen: Texture, anisotropy: number) {
       x.fillText(k[0], k[1], k[2] + 1)
     }
     legt.needsUpdate = true
-
-    const y = gcan.getContext("2d")!
-    y.clearRect(0, 0, 520, 144)
-    y.font = `800 84px ${f.display}`
-    y.textBaseline = "middle"
-    y.textAlign = "center"
-    const w = y.measureText("Chams.").width
-    const w2 = y.measureText(".").width
-    y.fillStyle = "#ffffff"
-    y.fillText("Chams", 260 - w2 / 2, 76)
-    y.fillStyle = "#ff3d81"
-    y.fillText(".", 260 + w / 2 - w2 / 2, 76)
-    gt.needsUpdate = true
+    brand.draw(f)
   }
 
   const dispose = () => {
     geometries.forEach((g) => g.dispose())
     materials.forEach((m) => m.dispose())
     textures.forEach((t) => t.dispose())
+    brand.dispose()
   }
 
   return { group: laptop, screenMaterial: lscr.material as MeshStandardMaterial, drawText, dispose }
@@ -255,7 +243,7 @@ export function LaptopRigs({
     // Modèle construit une fois, avec des écrans provisoires remplacés ci-dessous
     const placeholder = screenCanvas(1, 1, 1, 1).texture
     const lapA = buildLaptop(materials, placeholder, anisotropy)
-    const phA = buildPhone(materials, placeholder)
+    const phA = buildPhone(materials, placeholder, anisotropy)
     const proto = new Group()
     proto.add(lapA.group, phA.group)
     applyEnv(proto, env)
@@ -305,7 +293,10 @@ export function LaptopRigs({
     const rigs = [make(0), make(1)]
     return {
       rigs,
-      drawText: lapA.drawText,
+      drawText: (f: HomeFonts) => {
+        lapA.drawText(f)
+        phA.drawText(f)
+      },
       dispose() {
         rigs.forEach((r) => r.rig.group.removeFromParent())
         lapA.dispose()

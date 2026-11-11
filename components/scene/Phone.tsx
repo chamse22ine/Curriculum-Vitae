@@ -3,6 +3,9 @@
 import { useEffect, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
 import { BoxGeometry, CylinderGeometry, Group, Mesh, TorusGeometry, type BufferGeometry, type Texture } from "three"
+import type { HomeFonts } from "@/lib/home-fonts"
+import { brandLogo } from "./brand"
+import { sceneFontsReady } from "./fonts"
 import { rplane, slab } from "./geometry"
 import { applyEnv, glass, type Materials } from "./materials"
 import { ease } from "./screens/shared"
@@ -12,7 +15,7 @@ import { pShop } from "./screens/phone/shop"
 import { FRAME, grab, useSceneState } from "./state"
 
 /** Téléphone (makePhone du prototype) : coque mate, dalle, boutons, bloc photo à trois objectifs */
-export function buildPhone(mats: Materials, screen: Texture) {
+export function buildPhone(mats: Materials, screen: Texture, anisotropy = 1) {
   const g = new Group()
   g.name = "phone"
   const geos: BufferGeometry[] = [
@@ -48,12 +51,19 @@ export function buildPhone(mats: Materials, screen: Texture) {
     r.position.set(x, y, -0.085)
     g.add(r)
   }
+  // Logo au dos, sous le bloc photo (rotation : lisible de derrière)
+  const brand = brandLogo(0.46, anisotropy)
+  brand.mesh.rotation.y = Math.PI
+  brand.mesh.position.set(0, -0.12, -0.048)
+  g.add(brand.mesh)
   return {
     group: g,
     screenMaterial,
+    drawText: brand.draw,
     dispose() {
       geos.forEach((x) => x.dispose())
       screenMaterial.dispose()
+      brand.dispose()
     },
   }
 }
@@ -65,11 +75,16 @@ const bigStation = (F: number) => (F < 3.5 ? 1 : 6)
  * Grand téléphone, en un seul exemplaire : boutique mobile (station 1, à droite du portable)
  * puis suivi d'heures (station 6, à gauche). Échelle 1,3, écran dessiné ×2.
  */
-export function BigPhone({ materials, env, anisotropy }: Readonly<{ materials: Materials; env: Texture | null; anisotropy: number }>) {
+export function BigPhone({
+  materials,
+  env,
+  anisotropy,
+  fonts,
+}: Readonly<{ materials: Materials; env: Texture | null; anisotropy: number; fonts: HomeFonts }>) {
   const s = useSceneState()
   const dev = useMemo(() => {
     const scr = screenCanvas(PW, PH, 2, anisotropy)
-    const phone = buildPhone(materials, scr.texture)
+    const phone = buildPhone(materials, scr.texture, anisotropy)
     phone.group.scale.setScalar(1.3)
     applyEnv(phone.group, env)
     const st = { at: 1 }
@@ -83,16 +98,19 @@ export function BigPhone({ materials, env, anisotropy }: Readonly<{ materials: M
   }, [materials, env, anisotropy])
 
   useEffect(() => {
+    let alive = true
+    sceneFontsReady(fonts).then(() => alive && dev.phone.drawText(fonts))
     s.screens.push(dev.screen)
     s.grabs.push(dev.g)
     return () => {
+      alive = false
       s.screens.splice(s.screens.indexOf(dev.screen), 1)
       s.grabs.splice(s.grabs.indexOf(dev.g), 1)
       dev.phone.group.removeFromParent()
       dev.phone.dispose()
       dev.scr.texture.dispose()
     }
-  }, [s, dev])
+  }, [s, dev, fonts])
 
   useFrame(() => {
     const at = bigStation(s.F)
