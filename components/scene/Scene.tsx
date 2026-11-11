@@ -1,6 +1,6 @@
 "use client"
 
-import { Component, useEffect, useMemo, useRef, type ReactNode } from "react"
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { Color, HemisphereLight, MathUtils } from "three"
 import { PALETTES } from "@/content/sections"
@@ -14,7 +14,7 @@ import { Dust } from "./Dust"
 import { Effects } from "./Effects"
 import { buildStudioEnvironment } from "./environment"
 import { sceneFontsReady } from "./fonts"
-import { Interactions } from "./Interactions"
+import { Interactions, STAGE_ID } from "./Interactions"
 import { LaptopRigs } from "./Laptop"
 import { createMaterials } from "./materials"
 import { Chip } from "./Chip"
@@ -219,29 +219,47 @@ function hasWebGL() {
   }
 }
 
+/** Densité de pixels plafonnée : 1,75 sur ordinateur, 1,5 sur mobile (resize() du prototype) */
+const pixelRatio = () => Math.min(window.devicePixelRatio || 1, window.innerWidth > MOBILE_MAX ? 1.75 : 1.5)
+
+function usePixelRatio() {
+  const [dpr, setDpr] = useState(pixelRatio)
+  useEffect(() => {
+    const onResize = () => setDpr(pixelRatio())
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
+  return dpr
+}
+
 export default function Scene({ progress, onReady }: Readonly<SceneProps>) {
   const { language } = useLanguage()
+  const dpr = usePixelRatio()
   // Composant chargé uniquement côté client (ssr: false) : le test peut se faire au rendu
   const webgl = useMemo(hasWebGL, [])
   if (!webgl) return null
   return (
-    <div className="home-field" aria-hidden="true">
-      <SceneBoundary>
-        <Canvas
-          legacy
-          linear
-          flat
-          dpr={[1, 1.75]}
-          gl={{ antialias: true, alpha: false }}
-          camera={{ fov: 45, near: 0.3, far: 120, position: [0, 0, 0] }}
-          onCreated={({ gl }) => {
-            gl.domElement.setAttribute("aria-hidden", "true")
-            onReady()
-          }}
-        >
-          <World progress={progress} lang={language} />
-        </Canvas>
-      </SceneBoundary>
-    </div>
+    <>
+      {/* Mobile : zone transparente au-dessus de la scène, pour saisir les objets au doigt */}
+      <div id={STAGE_ID} className="home-stage" aria-hidden="true" />
+      <div className="home-field" aria-hidden="true">
+        <SceneBoundary>
+          <Canvas
+            legacy
+            linear
+            flat
+            dpr={dpr}
+            gl={{ antialias: true, alpha: false }}
+            camera={{ fov: 45, near: 0.3, far: 120, position: [0, 0, 0] }}
+            onCreated={({ gl }) => {
+              gl.domElement.setAttribute("aria-hidden", "true")
+              onReady()
+            }}
+          >
+            <World progress={progress} lang={language} />
+          </Canvas>
+        </SceneBoundary>
+      </div>
+    </>
   )
 }
