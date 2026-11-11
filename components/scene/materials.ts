@@ -1,4 +1,4 @@
-import { MeshStandardMaterial, type Object3D, type Texture } from "three"
+import { MeshPhysicalMaterial, MeshStandardMaterial, type Object3D, type Texture } from "three"
 
 /**
  * Matériaux partagés des objets, valeurs du prototype.
@@ -31,11 +31,20 @@ export function createMaterials() {
 export type Materials = ReturnType<typeof createMaterials>
 
 /**
+ * Part de reflet de la vitre (1 = verre ordinaire, comme dans le prototype). À 1, sur mobile, le
+ * portable qui se balance renvoie par moments le soleil sur toute la dalle : l'écran passe le
+ * seuil du halo et devient illisible (le prototype aussi). À 0,15 l'écran reste lisible (mesuré).
+ */
+const GLASS_SPECULAR = 0.15
+
+/**
  * Dalle d'écran : noire, l'image vient de la carte émissive. Intensité 0,8 (0,52 pour les apps
  * à fond blanc, réglée à chaque dessin) : sous le seuil du halo, l'écran reste lisible.
+ * MeshPhysicalMaterial pour régler la part de reflet (specularIntensity).
  */
 export function glass(map: Texture) {
-  return new MeshStandardMaterial({
+  return new MeshPhysicalMaterial({
+    specularIntensity: GLASS_SPECULAR,
     color: 0x000000,
     emissive: 0xffffff,
     emissiveMap: map,

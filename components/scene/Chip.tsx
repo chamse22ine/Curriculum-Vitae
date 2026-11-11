@@ -241,8 +241,8 @@ export function Chip({
     const parent = s.stations[STATION]
     if (parent && dev.chip.parent !== parent) parent.add(dev.chip)
     const { time, clock, reduce } = s
-    // Arrivée (capot qui descend, pistes qui s'allument) : a = act de la station, étape 6
-    const a = 1
+    // À l'arrivée, la carte tourne en place, le capot descend et les pistes s'allument
+    const a = s.act[STATION]
     const q = 1 - ease(a * 1.25)
     const on = 1 - q
     const bump = Math.sin(Math.PI * Math.min(1, Math.max(0, (clock - dev.gr.kick) / 1.3)))

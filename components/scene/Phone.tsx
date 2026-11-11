@@ -101,8 +101,8 @@ export function BigPhone({ materials, env, anisotropy }: Readonly<{ materials: M
     if (parent && dev.phone.group.parent !== parent) parent.add(dev.phone.group)
     const { time, reduce } = s
     const m = at === 1 ? 1 : -1
-    // Pivot d'arrivée : à l'étape 6 (q = 1 − ease(act × 1,2)) ; pour l'instant posé en place
-    const q = 1 - ease(1)
+    // À l'arrivée, le téléphone pivote sur lui-même avant de se poser (q : 1 → 0)
+    const q = 1 - ease(s.act[at] * 1.2)
     const p = dev.phone.group
     p.position.set(m * 0.95, -0.05 + (reduce ? 0 : Math.sin(time * 0.9) * 0.06), 0.8)
     p.rotation.set(-0.04 + dev.g.rx, -m * 0.3 - m * q * 5 + dev.g.ry, reduce ? 0 : Math.sin(time * 0.6) * 0.03)

@@ -8,6 +8,7 @@ import { rplane, slab } from "./geometry"
 import { applyEnv, glass, type Materials } from "./materials"
 import { LH, LW, screenCanvas, type Screen } from "./screens"
 import { appDash } from "./screens/monitor/dash"
+import { ease } from "./screens/shared"
 import { FRAME, grab, useSceneState } from "./state"
 
 /** Station du moniteur (Data) et taille de sa dalle, au ratio de l'écran du portable */
@@ -78,8 +79,8 @@ export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Ma
   useFrame(() => {
     const parent = s.stations[STATION]
     if (parent && dev.g.parent !== parent) parent.add(dev.g)
-    // Arrivée en glissant depuis la droite (q = 1 − ease(act × 1,3)) : étape 6 ; pour l'instant en place
-    const q = 0
+    // À l'arrivée, le moniteur glisse depuis la droite en pivotant (q : 1 → 0)
+    const q = 1 - ease(s.act[STATION] * 1.3)
     dev.g.position.set(1.05 + q * 3.5, 0.75, -0.9)
     dev.g.rotation.set(dev.gr.rx, -0.3 - q * 0.8 + dev.gr.ry, 0)
   }, FRAME.objects)

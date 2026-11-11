@@ -226,8 +226,8 @@ export function Rack({
     if (parent && dev.rack.parent !== parent) parent.add(dev.rack)
     const { clock } = s
     const tt = (clock - s.startT[STATION]) % CYCLE
-    // Arrivée (les serveurs s'enfichent un par un) : a = act de la station, étape 6
-    const a = 1
+    // À l'arrivée, les serveurs s'enfichent un par un, de haut en bas
+    const a = s.act[STATION]
     dev.units.forEach((u, j) => {
       const pull = Math.sin(Math.PI * Math.min(1, Math.max(0, (clock - u.kick) / 1.5)))
       u.g.position.z = (1 - ease(a * 1.9 - j * 0.09)) * 1.4 + pull * 0.75

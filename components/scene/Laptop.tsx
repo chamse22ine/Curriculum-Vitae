@@ -25,6 +25,7 @@ import { KP, LH, LW, PH, PW, screenCanvas, type Screen } from "./screens"
 import { LAPTOP_APPS } from "./screens/laptop"
 import { PHONE_APPS } from "./screens/phone"
 import { MOBILE_MAX } from "@/hooks/use-scroll-progress"
+import { ease } from "./screens/shared"
 import { damp, FRAME, grab, type Grab, useSceneState } from "./state"
 
 /** Largeur et profondeur de la base (unités de scène) */
@@ -353,8 +354,8 @@ export function LaptopRigs({
       r.rotation.x = 0.24
       u.st = st
       u.open += ((u.shut ? 0 : 1) - u.open) * (reduce ? 1 : damp(0.08, s.dt))
-      // Ouverture à l'arrivée (ease(act × 1,25)) : étape 6 ; pour l'instant ouvert
-      u.lid.rotation.x = -LID_OPEN * u.open
+      // L'écran s'ouvre à l'arrivée dans la station, et suit les clics (open)
+      u.lid.rotation.x = -LID_OPEN * ease(s.act[st] * 1.25) * u.open
       u.lap.rotation.set(u.gl.rx, u.gl.ry, 0)
       u.phone.visible = !!ps[5]
       if (ps[5]) {

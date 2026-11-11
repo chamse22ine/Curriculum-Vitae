@@ -10,6 +10,8 @@ import { homeFonts } from "@/lib/home-fonts"
 import { useLanguage } from "@/lib/language-context"
 import { Background, createBackgroundUniforms, type BackgroundUniforms } from "./Background"
 import { CameraRig } from "./CameraRig"
+import { Dust } from "./Dust"
+import { Effects } from "./Effects"
 import { buildStudioEnvironment } from "./environment"
 import { sceneFontsReady } from "./fonts"
 import { Interactions } from "./Interactions"
@@ -190,6 +192,8 @@ function World({ progress, lang }: Readonly<{ progress: () => ScrollProgress; la
       <CameraRig uniforms={uniforms} />
       <Stations />
       <Objects lang={lang} />
+      <Dust />
+      <Effects />
     </SceneStateContext.Provider>
   )
 }
