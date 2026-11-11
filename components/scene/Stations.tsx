@@ -9,7 +9,8 @@ const IDS = Array.from({ length: NS }, (_, i) => i)
 /**
  * Les huit stations posées sur l'anneau. Seules la station quittée et la station atteinte sont
  * dessinées (plus celle qui finit de s'effacer). Chaque station a une valeur `act` de 0 à 1 qui
- * pilote son animation d'arrivée ; les objets s'y accrochent (étapes suivantes).
+ * pilote son animation d'arrivée ; les objets (portables, téléphones, moniteur, processeur, baie)
+ * s'y accrochent eux-mêmes.
  */
 export function Stations() {
   const s = useSceneState()

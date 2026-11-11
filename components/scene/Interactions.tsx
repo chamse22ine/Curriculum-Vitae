@@ -6,7 +6,7 @@ import { Raycaster, Vector2, type Object3D } from "three"
 import { MOBILE_MAX } from "@/hooks/use-scroll-progress"
 import { damp, FRAME, type Grab, useSceneState } from "./state"
 
-/** Zone tactile transparente au-dessus de la scène sur mobile (étape 7) */
+/** Zone tactile transparente au-dessus de la scène sur mobile (#home-stage, voir home.css) */
 export const STAGE_ID = "home-stage"
 /** Éléments au-dessus de la scène : le pointeur y appartient au texte ou aux commandes */
 const UI_SELECTOR = ".home-col, .home-header, .home-keys, .home-hud, .home-footer"

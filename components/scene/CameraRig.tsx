@@ -11,7 +11,7 @@ import { damp, DTH, FRAME, RATE, RI, RO, useSceneState, YS } from "./state"
  * - ambiante et directionnelle : × π pour retrouver le même éclairement ;
  * - ponctuelles : l'atténuation a changé de formule. r128 : (1 − d / 18) ; r187 avec decay 0 :
  *   (1 − (d / 18)⁴)². Le coefficient POINT_FIT les égale à la distance caméra → stations (≈ 8),
- *   à affiner par capture à l'étape 3, quand il y aura des objets à éclairer.
+ *   rendu vérifié par captures comparées au prototype.
  */
 const LEGACY = Math.PI
 const POINT_FIT = (1 - 8 / 18) / Math.pow(1 - Math.pow(8 / 18, 4), 2)
