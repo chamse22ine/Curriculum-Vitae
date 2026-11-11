@@ -79,6 +79,8 @@ export function Monitor({ materials, env, anisotropy }: Readonly<{ materials: Ma
   useFrame(() => {
     const parent = s.stations[STATION]
     if (parent && dev.g.parent !== parent) parent.add(dev.g)
+    // Comme les updaters du prototype : rien à calculer quand la station n'est pas dessinée
+    if (!parent?.visible) return
     // À l'arrivée, le moniteur glisse depuis la droite en pivotant (q : 1 → 0)
     const q = 1 - ease(s.act[STATION] * 1.3)
     dev.g.position.set(1.05 + q * 3.5, 0.75, -0.9)

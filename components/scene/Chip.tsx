@@ -240,6 +240,8 @@ export function Chip({
   useFrame(() => {
     const parent = s.stations[STATION]
     if (parent && dev.chip.parent !== parent) parent.add(dev.chip)
+    // Comme les updaters du prototype : rien à calculer quand la station n'est pas dessinée
+    if (!parent?.visible) return
     const { time, clock, reduce } = s
     // À l'arrivée, la carte tourne en place, le capot descend et les pistes s'allument
     const a = s.act[STATION]

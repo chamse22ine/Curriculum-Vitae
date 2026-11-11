@@ -224,8 +224,12 @@ export function Rack({
   useFrame(() => {
     const parent = s.stations[STATION]
     if (parent && dev.rack.parent !== parent) parent.add(dev.rack)
+    // Comme les updaters du prototype : rien à calculer quand la station n'est pas dessinée
+    if (!parent?.visible) return
     const { clock } = s
-    const tt = (clock - s.startT[STATION]) % CYCLE
+    // Mouvement réduit : voyants figés sur l'état « déployé » (le prototype les laissait clignoter)
+    const lc = s.reduce ? 30 : clock
+    const tt = s.reduce ? CYCLE - 0.5 : (clock - s.startT[STATION]) % CYCLE
     // À l'arrivée, les serveurs s'enfichent un par un, de haut en bas
     const a = s.act[STATION]
     dev.units.forEach((u, j) => {
@@ -240,12 +244,12 @@ export function Rack({
         // Chaque serveur passe au vert à son tour : en attente, déploiement (orange clignotant), prêt
         const s0 = 0.6 + l.u * 1.2
         if (tt < s0) c.setHex(0x1a6b45)
-        else if (tt < s0 + 1.2) c.setHex(Math.floor(clock * 6) % 2 ? 0xffb300 : 0x332400)
+        else if (tt < s0 + 1.2) c.setHex(Math.floor(lc * 6) % 2 ? 0xffb300 : 0x332400)
         else c.setHex(0x3dff9e)
       } else if (l.type === "act") {
-        if (hash(l.u * 7 + l.i * 13 + Math.floor(clock * (5 + l.i))) > 0.45) c.copy(s.cA)
+        if (hash(l.u * 7 + l.i * 13 + Math.floor(lc * (5 + l.i))) > 0.45) c.copy(s.cA)
         else c.setHex(0x0a1f18)
-      } else c.setHex(hash(l.i * 3.1 + Math.floor(clock * 9 + l.i)) > 0.5 ? (l.i % 5 ? 0x3dff9e : 0xffb300) : 0x0a1f18)
+      } else c.setHex(hash(l.i * 3.1 + Math.floor(lc * 9 + l.i)) > 0.5 ? (l.i % 5 ? 0x3dff9e : 0xffb300) : 0x0a1f18)
     }
   }, FRAME.objects)
 
